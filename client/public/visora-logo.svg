@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" role="img" aria-labelledby="visoraIconTitle">
+  <title id="visoraIconTitle">VisOra Analytics Icon</title>
+  
+  <defs>
+    <linearGradient id="eyeGradient" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" style="stop-color:#0F4C81" /> <stop offset="100%" style="stop-color:#00A896" /> </linearGradient>
+    <linearGradient id="chartGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#00A896" /> <stop offset="100%" style="stop-color:#F0B90B" /> </linearGradient>
+  </defs>
+
+  <path d="M50 15 C 20 15, 5 50, 5 50 C 5 50, 20 85, 50 85 C 80 85, 95 50, 95 50 C 95 50, 80 15, 50 15 Z" stroke="url(#eyeGradient)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M50 22 C 30 22, 15 50, 15 50 C 15 50, 30 78, 50 78 C 70 78, 85 50, 85 50 C 85 50, 70 22, 50 22 Z" stroke="url(#eyeGradient)" stroke-width="1.5" fill="none" opacity="0.6"/>
+
+  <circle cx="50" cy="50" r="18" fill="#0F4C81" />
+
+  <g transform="translate(50, 50)">
+    <rect x="-10" y="-2" width="4" height="8" rx="1" fill="#00A896" />
+    <rect x="-2" y="-6" width="4" height="12" rx="1" fill="#00A896" />
+    <rect x="6" y="-12" width="4" height="18" rx="1" fill="url(#chartGradient)" />
+    <path d="M6 -16 L10 -12 L16 -20" stroke="#F0B90B" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+
+  <circle cx="50" cy="50" r="26" stroke="url(#eyeGradient)" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.5" transform="rotate(-20 50 50)"/>
+
+</svg>
