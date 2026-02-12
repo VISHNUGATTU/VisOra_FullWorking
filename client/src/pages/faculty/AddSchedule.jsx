@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Calendar, Clock, BookOpen, MapPin, 
   Layers, Users, Save, ArrowLeft, CheckCircle, Coffee,
-  AlertTriangle, Grid, GraduationCap 
+  AlertTriangle, Grid, GraduationCap, X // 🔥 Added X here
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
@@ -63,12 +63,12 @@ const SCHEDULE_CONFIG = {
 
 const AddSchedule = () => {
   const navigate = useNavigate();
-  const { axios } = useAppContext(); // Use standard axios from context
+  const { axios } = useAppContext();
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); // This controls the pop-up
 
-  const currentDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  const currentDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }); 
 
   // --- ROOMS GENERATION ---
   const roomGroups = useMemo(() => {
@@ -133,57 +133,32 @@ const AddSchedule = () => {
     e.preventDefault();
     setLoading(true); setError(null);
 
-    // 1. Validation
-    if (formData.type === 'Lab' && !formData.batch) {
-      setError("Please select a Batch (1 or 2) for Lab.");
-      setLoading(false); return;
-    }
-    if (formData.type !== 'Leisure' && !formData.subject.trim()) {
-       setError("Subject is required.");
-       setLoading(false); return;
-    }
-    if (formData.type !== 'Leisure' && !formData.room) {
-       setError("Room is required.");
-       setLoading(false); return;
-    }
-    if (!formData.slotId) {
-       setError("Please select a Time Slot.");
-       setLoading(false); return;
-    }
-
     try {
-      // 2. Lookup Slot Details from Config
       const slotDetails = availableSlots.find(s => s.id === formData.slotId);
-      if(!slotDetails) throw new Error("Invalid Time Slot");
+      if(!slotDetails) throw new Error("Please select a time slot");
+
       const payload = {
-        day: formData.day,
-        branch: formData.branch,
+        ...formData,
         year: Number(formData.year),
-        section: formData.section,
-        subject: formData.subject,
-        room: formData.room,
-        type: formData.type,
         batch: formData.type === 'Lab' ? Number(formData.batch) : null,
         startTime: slotDetails.startTime,
         endTime: slotDetails.endTime,
-        // 🔥 FIX: Explicitly map 'pIndex' to 'periodIndex'
+        startMinutes: slotDetails.startMin,
+        duration: slotDetails.duration,
         periodIndex: Number(slotDetails.pIndex) 
       };
 
-      // 3. API Call
       const res = await axios.post('/api/faculty/add-schedule', payload);
       
       if (res.data.success) {
-        toast.success(`Added: ${formData.subject} (${formData.day})`);
-        navigate('/faculty/schedule'); // Redirect to dashboard
+        toast.success(`Added: ${formData.subject}`);
+        navigate('/faculty/schedule');
       }
 
     } catch (err) {
-      console.error(err);
-      const msg = err.response?.data?.message || err.message || "Failed to add schedule";
-      
-      if (msg.includes('Conflict')) {
-        setError(msg); // Show specific conflict message from backend
+      const msg = err.response?.data?.message || "Failed to add schedule";
+      if (err.response?.status === 409) {
+        setError(msg); // 🔥 This triggers the pop-up modal
       } else {
         toast.error(msg);
       }
@@ -197,17 +172,20 @@ const AddSchedule = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans">
       
-      {/* ERROR MODAL */}
+      {/* --- POP-UP MODAL --- */}
       {error && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in" onClick={() => setError(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
-            <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in" onClick={() => setError(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center relative" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setError(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full">
+              <X size={20} className="text-gray-400" />
+            </button>
+            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-red-50 mb-6">
+              <AlertTriangle className="h-10 w-10 text-red-600" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Scheduling Conflict</h3>
-            <p className="text-sm text-gray-500 mb-6">{error}</p>
-            <button onClick={() => setError(null)} className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors">
-              Okay, I'll fix it
+            <h3 className="text-2xl font-black text-gray-900 mb-2">Scheduling Conflict</h3>
+            <p className="text-gray-500 font-medium mb-8 leading-relaxed">{error}</p>
+            <button onClick={() => setError(null)} className="w-full py-4 bg-gray-900 text-white font-bold rounded-2xl hover:bg-black transition-all">
+              Got it, I'll fix it
             </button>
           </div>
         </div>

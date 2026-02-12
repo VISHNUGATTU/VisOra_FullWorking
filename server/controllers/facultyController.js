@@ -282,6 +282,7 @@ export const deleteFacultyById = async (req, res) => {
 };
 
 
+// Helper to convert "09:00 AM" to minutes (e.g., 540)
 const timeToMinutes = (timeStr) => {
   const [time, modifier] = timeStr.split(" ");
   let [hours, minutes] = time.split(":").map(Number);
@@ -290,39 +291,47 @@ const timeToMinutes = (timeStr) => {
   return hours * 60 + minutes;
 };
 
+// Helper to calculate duration between two time strings
+const getDurationInMinutes = (start, end) => {
+  return timeToMinutes(end) - timeToMinutes(start);
+};
+
 export const addScheduleSlot = async (req, res) => {
   try {
     const facultyId = req.userId;
+    // 🔥 Added missing fields to destructuring
     const { 
-      day, branch, year, section, subject, room, type, batch, 
+      day, branch, year, section, subject, room, type, batch,
       startTime, endTime, startMinutes, duration, periodIndex 
     } = req.body;
 
-    // 1. Fetch the teacher's current schedule
     let scheduleDoc = await FacultySchedule.findOne({ faculty: facultyId });
     if (!scheduleDoc) {
       scheduleDoc = new FacultySchedule({ faculty: facultyId, timetable: [] });
     }
 
-    // 2. UNIFIED MATH CONFLICT CHECK
-    // We use the raw minutes sent from the frontend config
     const newStart = Number(startMinutes);
     const newEnd = newStart + Number(duration);
-
-    // Filter slots for the same day
     const daySlots = scheduleDoc.timetable.filter(s => s.day === day);
 
     for (const slot of daySlots) {
-      // We need to ensure the existing slots also have minute data. 
-      // Since your schema stores strings, we'll use a helper to match the frontend math.
-      const existingStart = timeToMinutes(slot.startTime); 
-      const existingEnd = existingStart + getDurationInMinutes(slot.startTime, slot.endTime);
+      // 1. Check for Duplicate Period
+      if (Number(slot.periodIndex) === Number(periodIndex)) {
+        return res.status(409).json({
+          success: false,
+          message: `Slot already exists for Period ${periodIndex} on ${day}.`
+        });
+      }
 
-      // Overlap Logic: (StartA < EndB) AND (EndA > StartB)
+      // 2. MATH OVERLAP CHECK
+      const existingStart = timeToMinutes(slot.startTime); 
+      const existingDuration = getDurationInMinutes(slot.startTime, slot.endTime);
+      const existingEnd = existingStart + existingDuration;
+
       if (newStart < existingEnd && newEnd > existingStart) {
         return res.status(409).json({
           success: false,
-          message: `Conflict! Slot overlaps with "${slot.subject}" (${slot.startTime} - ${slot.endTime})`
+          message: `Conflict! Overlaps with "${slot.subject}" (${slot.startTime} - ${slot.endTime})`
         });
       }
     }
@@ -337,8 +346,8 @@ export const addScheduleSlot = async (req, res) => {
       room: type === 'Leisure' ? 'N/A' : room,
       type,
       batch: type === 'Lab' ? Number(batch) : null,
-      startTime, // "09:00 AM"
-      endTime,   // "10:00 AM"
+      startTime,
+      endTime,
       periodIndex: Number(periodIndex)
     };
 
@@ -358,20 +367,6 @@ export const addScheduleSlot = async (req, res) => {
     console.error("Add Schedule Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
-};
-
-// --- HELPERS TO MATCH FRONTEND MATH ---
-
-// const timeToMinutes = (timeStr) => {
-//   const [time, modifier] = timeStr.split(" ");
-//   let [hours, minutes] = time.split(":").map(Number);
-//   if (hours === 12) hours = 0;
-//   if (modifier === "PM") hours += 12;
-//   return hours * 60 + minutes;
-// };
-
-const getDurationInMinutes = (start, end) => {
-  return timeToMinutes(end) - timeToMinutes(start);
 };
 
 /* ===============================================================

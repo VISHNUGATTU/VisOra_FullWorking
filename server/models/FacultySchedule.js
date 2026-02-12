@@ -48,6 +48,20 @@ facultyScheduleSchema.index({
   "timetable.section": 1, 
   "timetable.day": 1 
 });
+facultyScheduleSchema.pre('save', function(next) {
+  const timetable = this.timetable;
+  const duplicates = timetable.filter((slot, index) => {
+    return timetable.findIndex(s => 
+      s.day === slot.day && 
+      s.periodIndex === slot.periodIndex
+    ) !== index;
+  });
 
+  if (duplicates.length > 0) {
+    const error = new Error(`Duplicate entry found for ${duplicates[0].day} Period ${duplicates[0].periodIndex}`);
+    return next(error);
+  }
+  next();
+});
 const FacultySchedule = mongoose.model("FacultySchedule", facultyScheduleSchema);
 export default FacultySchedule;
