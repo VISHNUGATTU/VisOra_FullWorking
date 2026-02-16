@@ -25,40 +25,52 @@ export const AppContextProvider = ({ children }) => {
   const [profileOpen, setProfileOpen] = useState(false);
 
   // ✅ 1. Check Auth (Updated to handle Faculty)
-  const checkAuth = useCallback(async () => {
-    try {
-      const role = sessionStorage.getItem("role");
-      
-      if (!role) {
-        setAuthReady(true);
-        return;
-      }
+const checkAuth = useCallback(async () => {
+  try {
+    const role = sessionStorage.getItem("role");
+    
+    // 1. CRITICAL: Clear all previous user data immediately 
+    // to prevent "leaking" data between sessions
+    setAdminInfo(null);
+    setFacultyInfo(null);
+    setStudentInfo(null);
 
-      const { data } = await axios.get(`/api/${role}/is-auth`);
-
-      if (data.success) {
-        setUser({ token: "cookie-auth", role });
-        
-        // Handle Admin
-        if (role === "admin" && data.admin) {
-          setAdminInfo(data.admin);
-        }
-        // ✅ Handle Faculty
-        else if (role === "faculty" && data.faculty) {
-          setFacultyInfo(data.faculty);
-        }
-
-      } else {
-        setUser({ token: null, role: null });
-        sessionStorage.removeItem("role");
-      }
-    } catch (error) {
-      console.error("Auth check error:", error);
-      setUser({ token: null, role: null });
-    } finally {
+    if (!role) {
+      setUser({ token: null, role: null }); // Reset user state too
       setAuthReady(true);
+      return;
     }
-  }, []);
+
+    const { data } = await axios.get(`/api/${role}/is-auth`);
+
+    if (data.success) {
+      setUser({ token: "cookie-auth", role });
+      
+      // 2. Set only the relevant info for the current role
+      if (role === "admin" && data.admin) {
+        setAdminInfo(data.admin);
+      } else if (role === "faculty" && data.faculty) {
+        setFacultyInfo(data.faculty);
+      } else if (role === "student" && data.student) {
+        // Ensure student info is also handled if your API returns it
+        setStudentInfo(data.student);
+      }
+
+    } else {
+      setUser({ token: null, role: null });
+      sessionStorage.removeItem("role");
+    }
+  } catch (error) {
+    console.error("Auth check error:", error);
+    setUser({ token: null, role: null });
+    // Clear everything on error for security
+    setAdminInfo(null);
+    setFacultyInfo(null);
+    setStudentInfo(null);
+  } finally {
+    setAuthReady(true);
+  }
+}, []);
 
   // ✅ 2. Run checkAuth on mount
   useEffect(() => {

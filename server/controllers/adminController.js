@@ -93,65 +93,96 @@ export const logoutAdmin = async (req, res) => {
 ============================ */
 export const updateAdminProfile = async (req, res) => {
   try {
-    // Note: Ensure your 'authAdmin' middleware is attaching 'userId' or 'adminId' to req
     const adminId = req.userId; 
-    
-    const { name, phone, mail } = req.body;
+
+    if (!adminId) {
+        return res.status(401).json({ success: false, message: "Unauthorized: User ID missing" });
+    }
     
     const admin = await Admin.findById(adminId);
     if (!admin) {
       return res.status(404).json({ success: false, message: "Admin account not found" });
     }
 
-    // Update Text Fields
-    if (name) admin.name = name;
-    if (phone) admin.phone = phone;
+    const { name, phone, mail } = req.body;
 
-    // Handle Email Change with Unique Check
-    if (mail && mail.toLowerCase() !== admin.mail) {
-      const emailExists = await Admin.findOne({ mail: mail.toLowerCase() });
-      if (emailExists) {
-        return res.status(400).json({ success: false, message: "Email already registered to another admin" });
-      }
-      admin.mail = mail.toLowerCase();
+    // 1. UPDATE NAME
+    if (name) {
+        admin.name = name.trim();
     }
 
-    // Handle Image Upload to Cloudinary
+    // 2. UPDATE PHONE (The missing part!)
+    if (phone) {
+        const cleanPhone = phone.trim();
+        if (cleanPhone !== admin.phone) {
+            // A. VALIDATION: Check for 10 digits
+            const phoneRegex = /^\d{10}$/;
+            if (!phoneRegex.test(cleanPhone)) {
+                // 🛑 THIS will now throw the error for 9 digits
+                return res.status(400).json({ success: false, message: "Phone number must be exactly 10 digits" });
+            }
+
+            // B. DUPLICATE CHECK
+            const phoneExists = await Admin.findOne({ phone: cleanPhone, _id: { $ne: adminId } });
+            if (phoneExists) {
+                return res.status(409).json({ success: false, message: "Phone number already in use" });
+            }
+
+            // C. APPLY UPDATE
+            admin.phone = cleanPhone;
+        }
+    }
+
+    // 3. UPDATE MAIL
+    if (mail) {
+        const cleanMail = mail.trim().toLowerCase();
+        if (cleanMail !== admin.mail) {
+             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+             if (!emailRegex.test(cleanMail)) {
+                return res.status(400).json({ success: false, message: "Invalid email format" });
+             }
+
+             const emailExists = await Admin.findOne({ mail: cleanMail, _id: { $ne: adminId } });
+             if (emailExists) {
+                 return res.status(409).json({ success: false, message: "Email already in use" });
+             }
+             admin.mail = cleanMail;
+        }
+    }
+
+    // 4. UPDATE IMAGE
     if (req.file) {
       try {
         const uploadResult = await new Promise((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
             { folder: "admin_profiles", resource_type: "image" },
             (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
+              if (error) reject(error); else resolve(result);
             }
           );
           stream.end(req.file.buffer);
         });
         admin.image = uploadResult.secure_url;
       } catch (err) {
+        console.error("Cloudinary Error:", err);
         return res.status(500).json({ success: false, message: "Image upload failed" });
       }
     }
 
-    // Save triggers the password hashing middleware ONLY if passwords were modified.
-    // Since we didn't touch password1/password2 here, they stay safe.
+    // 5. SAVE
     await admin.save();
 
-    // Remove sensitive data before sending back to frontend
+    // 6. RETURN RESPONSE (Filter out passwords)
     const adminData = admin.toObject();
-    delete adminData.password1;
-    delete adminData.password2;
+    delete adminData.password;
+    delete adminData.password1; // Remove if not using
+    delete adminData.password2; // Remove if not using
 
-    return res.json({
-      success: true,
-      message: "Profile updated successfully",
-      admin: adminData,
-    });
+    return res.json({ success: true, message: "Profile updated successfully", admin: adminData });
+
   } catch (error) {
-    console.error("Admin Update Error:", error);
-    return res.status(500).json({ success: false, message: "Internal Server Error" });
+    console.error("Update Error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
   }
 };
 

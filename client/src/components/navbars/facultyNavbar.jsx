@@ -3,7 +3,8 @@ import { NavLink, Link } from "react-router-dom";
 import {
   FiMenu, FiHome, FiUsers, FiUser, FiLogOut,
   FiChevronDown, FiX, FiSettings, FiBell, FiFileText,
-  FiPieChart, FiCalendar
+  FiPieChart, FiCalendar,
+  FiActivity // <--- 1. Imported generic icon for Logs
 } from "react-icons/fi";
 import axios from "axios";
 import { useAppContext } from "../../context/AppContext";
@@ -18,7 +19,6 @@ const FacultyNavbar = ({ children }) => {
     setProfileOpen,
     user,
     authReady,
-    // ✅ 1. Use Global State instead of local state
     facultyInfo, 
     setFacultyInfo 
   } = useAppContext();
@@ -30,12 +30,9 @@ const FacultyNavbar = ({ children }) => {
   /* ================= FETCH FACULTY PROFILE ================= */
   useEffect(() => {
     const fetchFaculty = async () => {
-      // If we already have info in context (e.g., from login), don't re-fetch immediately
-      // But if you want to ensure freshness on refresh, keep the fetch.
       if (!authReady) return;
       if (!user?.token || user.role !== 'faculty') return;
 
-      // Only fetch if context is empty (prevents overwriting updates)
       if (facultyInfo) return; 
 
       try {
@@ -43,7 +40,6 @@ const FacultyNavbar = ({ children }) => {
         const res = await axios.get(`/api/faculty/is-auth`);
         
         if (res.data.success) {
-          // ✅ 2. Update GLOBAL Context, not local state
           setFacultyInfo(res.data.faculty); 
         }
       } catch (err) {
@@ -77,7 +73,6 @@ const FacultyNavbar = ({ children }) => {
 
   // Helper to determine which image to show
   const getProfileImage = () => {
-    // ✅ 3. Read from GLOBAL facultyInfo
     if (facultyInfo?.image && !imgError) {
       return facultyInfo.image;
     }
@@ -114,8 +109,12 @@ const FacultyNavbar = ({ children }) => {
           <div className="my-4 border-t border-slate-800 mx-4"></div>
 
           <p className="px-4 text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider">System</p>
-          <SideItem to="/faculty/reports-logs" icon={<FiFileText />} text="Reports & Logs" />
+          
+          {/* --- 2. UPDATED SEPARATE COMPONENTS LINKS --- */}
+          <SideItem to="/faculty/reports" icon={<FiFileText />} text="Reports" />
+          <SideItem to="/faculty/logs" icon={<FiActivity />} text="Logs" />
           <SideItem to="/faculty/notifications" icon={<FiBell />} text="Notifications" />
+
           <SideItem to="/faculty/settings" icon={<FiSettings />} text="Settings" />
           <SideItem to="/faculty/profile" icon={<FiUser />} text="My Profile" />
         </nav>
@@ -157,7 +156,6 @@ const FacultyNavbar = ({ children }) => {
             >
               <div className="text-right hidden md:block">
                 <p className="text-sm font-semibold text-gray-700 group-hover:text-indigo-600 transition-colors">
-                  {/* ✅ 4. Read directly from facultyInfo */}
                   {loadingProfile ? "Loading..." : facultyInfo?.name || "Faculty"}
                 </p>
                 <p className="text-xs text-gray-500 font-medium lowercase">

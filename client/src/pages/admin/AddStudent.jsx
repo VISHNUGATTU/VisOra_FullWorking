@@ -18,8 +18,8 @@ const AddStudent = () => {
   const [formData, setFormData] = useState({
     name: "",
     password: "",
-    year: "1",      
-    section: "A",   
+    year: "",      
+    section: "",   
     branch: "",
     rollno: "",
     mail: "",
@@ -212,6 +212,7 @@ const AddStudent = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800"
               >
+                <option values="">Select Year</option>
                 <option value="1">1st Year</option>
                 <option value="2">2nd Year</option>
                 <option value="3">3rd Year</option>

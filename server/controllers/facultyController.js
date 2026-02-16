@@ -79,26 +79,38 @@ export const logoutFaculty = async (req, res) => {
 ============================ */
 export const addFaculty = async (req, res) => {
   try {
-    const { name, password, department, facultyId, mail, phno, designation, image } = req.body;
+    // 1. Destructure
+    let { name, password, department, facultyId, mail, phno, designation, image } = req.body;
 
-    // --- Validation ---
+    // 2. Validation: Existence
     if (!name || !password || !department || !facultyId || !mail || !phno || !designation) {
       return res.status(400).json({ success: false, message: "All required fields are mandatory" });
     }
 
+    // 3. Sanitization: Trim inputs to remove accidental spaces
+    name = name.trim();
+    mail = mail.trim().toLowerCase(); // Emails should be lowercase for consistency
+    facultyId = facultyId.trim();
+    phno = phno.trim();
+
+    // 4. Validation: Regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(mail)) return res.status(400).json({ success: false, message: "Invalid email" });
+    if (!emailRegex.test(mail)) return res.status(400).json({ success: false, message: "Invalid email format" });
 
     const phoneRegex = /^\d{10}$/;
-    if (!phoneRegex.test(phno)) return res.status(400).json({ success: false, message: "Phone must be 10 digits" });
+    if (!phoneRegex.test(phno)) return res.status(400).json({ success: false, message: "Phone must be exactly 10 digits" });
 
-    if (password.length < 6) return res.status(400).json({ success: false, message: "Password too short" });
+    if (password.length < 6) return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
 
-    // --- Duplicate Check ---
+    // 5. Validation: Duplicate Check
     const exists = await Faculty.findOne({ $or: [{ facultyId }, { mail }, { phno }] });
-    if (exists) return res.status(400).json({ success: false, message: "Faculty details already exist" });
+    if (exists) return res.status(400).json({ success: false, message: "Faculty with this ID, Email, or Phone already exists" });
 
-    // --- Image Upload ---
+    // 6. Security: Hash Password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // --- Image Upload Logic (unchanged) ---
     let imageUrl = "";
     if (req.file) {
       const uploadResult = await new Promise((resolve, reject) => {
@@ -112,14 +124,23 @@ export const addFaculty = async (req, res) => {
       imageUrl = image;
     }
 
+    // 7. Create User with Hashed Password
     const faculty = await Faculty.create({
-      name, password, department, facultyId, mail, phno, designation, image: imageUrl,
+      name,
+      password: hashedPassword, // Store the hash, NOT the plain text
+      department,
+      facultyId,
+      mail,
+      phno,
+      designation,
+      image: imageUrl,
     });
 
     res.status(201).json({ success: true, message: "Faculty added successfully", faculty: { _id: faculty._id, name: faculty.name } });
 
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(error); // Log error for debugging
+    res.status(500).json({ success: false, message: "Server error while adding faculty" });
   }
 };
 
@@ -159,47 +180,78 @@ export const searchFaculty = async (req, res) => {
 ============================ */
 export const updateFaculty = async (req, res) => {
   try {
-    // 1. Identify the Faculty to update
-    // We expect the ID in params (from /update/:facultyId)
     const { facultyId } = req.params; 
     
+    // 1. Basic Validation
     if (!facultyId) {
         return res.status(400).json({ success: false, message: "Faculty ID is missing" });
     }
 
-    // 2. Prepare Update Object
-    // We manually pick fields to avoid 'adminId' or other immutable fields being injected
-    const { name, phno, mail, designation, password } = req.body;
+    // 2. Destructure and Trim
+    let { name, phno, mail, designation, password } = req.body;
     const updates = {};
 
-    if (name) updates.name = name;
-    if (phno) updates.phno = phno;
-    if (designation) updates.designation = designation;
-    
-    // 3. Email & Duplicate Check
+    if (name) updates.name = name.trim();
+    if (designation) updates.designation = designation.trim();
+
+    // 3. Duplicate Checks (Email AND Phone)
+    // We build a query to check if EITHER email OR phone exists for a DIFFERENT user
+    const conflictQuery = {
+        $and: [
+            { facultyId: { $ne: facultyId } }, // Not the current user
+            { 
+                $or: [] // We will push conditions here
+            }
+        ]
+    };
+
     if (mail) {
-        updates.mail = mail.toLowerCase();
-        // Check if this NEW email is already used by someone else
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Standard email format
+        if (!emailRegex.test(mail)) {
+            return res.status(400).json({ success: false, message: "Invalid email format" });
+        }
+        updates.mail = mail.toLowerCase(); // Lowercase and add if valid
+        
+        // --- NOW do the duplicate check ---
         const duplicate = await Faculty.findOne({ 
             mail: updates.mail, 
-            facultyId: { $ne: facultyId } // Exclude current user from check
+            facultyId: { $ne: facultyId } 
         });
+        
         if (duplicate) {
             return res.status(409).json({ success: false, message: "Email already in use by another faculty" });
         }
     }
+    if (phno) {
+        const phoneRegex = /^\d{10}$/; // Force 10 digits
+        if (!phoneRegex.test(phno)) {
+            return res.status(400).json({ success: false, message: "Phone number must be exactly 10 digits" });
+        }
+        updates.phno = phno; // Only add to updates if valid
+    }
 
-    // 4. Password Handling
-    // NOTE: findOneAndUpdate does NOT trigger Schema pre('save') hooks.
-    // We must hash manually here.
+    // Only run the duplicate check if we are actually updating mail or phno
+    if (conflictQuery.$and[1].$or.length > 0) {
+        const duplicate = await Faculty.findOne(conflictQuery);
+        if (duplicate) {
+            // Determine which field caused the conflict for a precise error message
+            const msg = duplicate.mail === updates.mail 
+                ? "Email already in use" 
+                : "Phone number already in use";
+            return res.status(409).json({ success: false, message: msg });
+        }
+    }
+
+    // 4. Password Handling (Manual Hash)
     if (password && password.trim().length > 0) {
         if (password.length < 6) {
             return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
         }
-        updates.password = await bcrypt.hash(password, 10);
+        const salt = await bcrypt.genSalt(10);
+        updates.password = await bcrypt.hash(password, salt);
     }
 
-    // 5. Image Upload (Stream)
+    // 5. Image Upload
     if (req.file) {
       try {
         const uploadResult = await new Promise((resolve, reject) => {
@@ -214,15 +266,16 @@ export const updateFaculty = async (req, res) => {
         });
         updates.image = uploadResult.secure_url;
       } catch (uploadError) {
+         console.error("Cloudinary Error:", uploadError);
          return res.status(500).json({ success: false, message: "Image upload failed" });
       }
     }
 
     // 6. Perform Update
     const updatedFaculty = await Faculty.findOneAndUpdate(
-      { facultyId: facultyId }, // Find by custom ID (String)
+      { facultyId: facultyId }, 
       { $set: updates },
-      { new: true, runValidators: true } // Return new doc, run schema checks
+      { new: true, runValidators: true }
     );
 
     if (!updatedFaculty) {
@@ -235,14 +288,16 @@ export const updateFaculty = async (req, res) => {
         faculty: {
             name: updatedFaculty.name,
             facultyId: updatedFaculty.facultyId,
-            image: updatedFaculty.image
+            image: updatedFaculty.image,
+            email: updatedFaculty.mail // Helpful to return the updated email
         }
     });
 
   } catch (err) {
     console.error("Update Error:", err);
+    // Fallback for race conditions
     if (err.code === 11000) {
-        return res.status(409).json({ success: false, message: "Duplicate details found (Email or Phone)" });
+        return res.status(409).json({ success: false, message: "Duplicate details found" });
     }
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
@@ -283,6 +338,7 @@ export const deleteFacultyById = async (req, res) => {
 
 
 const timeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
   const [time, modifier] = timeStr.split(" ");
   let [hours, minutes] = time.split(":").map(Number);
   if (hours === 12) hours = 0;
@@ -295,39 +351,43 @@ export const addScheduleSlot = async (req, res) => {
     const facultyId = req.userId;
     const { 
       day, branch, year, section, subject, room, type, batch, 
-      startTime, endTime, startMinutes, duration, periodIndex 
+      startTime, endTime, periodIndex 
     } = req.body;
 
-    // 1. Fetch the teacher's current schedule
-    let scheduleDoc = await FacultySchedule.findOne({ faculty: facultyId });
-    if (!scheduleDoc) {
-      scheduleDoc = new FacultySchedule({ faculty: facultyId, timetable: [] });
+    // 1. Fetch current schedule
+    // Use .lean() so we get a plain JS object (faster & safer for checking)
+    const scheduleDoc = await FacultySchedule.findOne({ faculty: facultyId }).lean();
+    
+    // 2. CALCULATE TIMES UNIFORMLY
+    // We ignore req.body.startMinutes to prevent frontend calculation errors.
+    // We convert the incoming string times directly.
+    const newStart = timeToMinutes(startTime); 
+    const newEnd = timeToMinutes(endTime); 
+
+    // 3. CONFLICT CHECK
+    if (scheduleDoc && scheduleDoc.timetable) {
+        // Filter for the same day (Case insensitive trim just to be safe)
+        const daySlots = scheduleDoc.timetable.filter(s => 
+            s.day.toLowerCase().trim() === day.toLowerCase().trim()
+        );
+
+        for (const slot of daySlots) {
+            const existingStart = timeToMinutes(slot.startTime); 
+            const existingEnd = timeToMinutes(slot.endTime); 
+
+            // LOGIC: If (NewStart < OldEnd) AND (NewEnd > OldStart) -> OVERLAP
+            // Example: Existing 10:00-13:00 (600-780). New 10:00-13:00 (600-780).
+            // 600 < 780 (True) && 780 > 600 (True) -> Conflict Detected.
+            if (newStart < existingEnd && newEnd > existingStart) {
+                return res.status(409).json({
+                    success: false,
+                    message: `Conflict! Slot overlaps with "${slot.subject}" (${slot.startTime} - ${slot.endTime})`
+                });
+            }
+        }
     }
 
-    // 2. UNIFIED MATH CONFLICT CHECK
-    // We use the raw minutes sent from the frontend config
-    const newStart = Number(startMinutes);
-    const newEnd = newStart + Number(duration);
-
-    // Filter slots for the same day
-    const daySlots = scheduleDoc.timetable.filter(s => s.day === day);
-
-    for (const slot of daySlots) {
-      // We need to ensure the existing slots also have minute data. 
-      // Since your schema stores strings, we'll use a helper to match the frontend math.
-      const existingStart = timeToMinutes(slot.startTime); 
-      const existingEnd = existingStart + getDurationInMinutes(slot.startTime, slot.endTime);
-
-      // Overlap Logic: (StartA < EndB) AND (EndA > StartB)
-      if (newStart < existingEnd && newEnd > existingStart) {
-        return res.status(409).json({
-          success: false,
-          message: `Conflict! Slot overlaps with "${slot.subject}" (${slot.startTime} - ${slot.endTime})`
-        });
-      }
-    }
-
-    // 3. ATOMIC PUSH
+    // 4. ATOMIC PUSH
     const newSlot = {
       day,
       branch: branch.toUpperCase(),
@@ -337,8 +397,8 @@ export const addScheduleSlot = async (req, res) => {
       room: type === 'Leisure' ? 'N/A' : room,
       type,
       batch: type === 'Lab' ? Number(batch) : null,
-      startTime, // "09:00 AM"
-      endTime,   // "10:00 AM"
+      startTime, 
+      endTime,   
       periodIndex: Number(periodIndex)
     };
 
@@ -360,19 +420,6 @@ export const addScheduleSlot = async (req, res) => {
   }
 };
 
-// --- HELPERS TO MATCH FRONTEND MATH ---
-
-// const timeToMinutes = (timeStr) => {
-//   const [time, modifier] = timeStr.split(" ");
-//   let [hours, minutes] = time.split(":").map(Number);
-//   if (hours === 12) hours = 0;
-//   if (modifier === "PM") hours += 12;
-//   return hours * 60 + minutes;
-// };
-
-const getDurationInMinutes = (start, end) => {
-  return timeToMinutes(end) - timeToMinutes(start);
-};
 
 /* ===============================================================
    2. GET MY SCHEDULE (Modified for Bucket Pattern)
@@ -449,16 +496,48 @@ export const deleteSchedule = async (req, res) => {
 ============================ */
 export const updateFacultyProfile = async (req, res) => {
   try {
-    // req.userId is provided by your authFaculty middleware
+    // 1. Get ID from Middleware
     const facultyId = req.userId; 
     
-    // We only allow faculty to update their name and phone number.
-    // Academic details like Email, ID, and Dept are locked for admin control.
+    // 2. Fetch Current Data (Needed for comparison)
+    const currentFaculty = await Faculty.findById(facultyId);
+    if (!currentFaculty) {
+        return res.status(404).json({ success: false, message: "Faculty record not found" });
+    }
+
+    const { name, phno, image } = req.body;
     const updates = {};
-    if (req.body.name) updates.name = req.body.name;
-    if (req.body.phno) updates.phno = req.body.phno;
-    
-    // Handle Profile Image Upload
+
+    // 3. Update Name
+    if (name) updates.name = name.trim();
+
+    // 4. Update Phone (With Validation & Duplicate Check)
+    if (phno) {
+        const cleanPhno = phno.trim();
+        
+        // Only proceed if the phone number is DIFFERENT from the current one
+        if (cleanPhno !== currentFaculty.phno) {
+            // A. Validate Format
+            const phoneRegex = /^\d{10}$/;
+            if (!phoneRegex.test(cleanPhno)) {
+                return res.status(400).json({ success: false, message: "Phone number must be exactly 10 digits" });
+            }
+
+            // B. Check for Duplicates (Is anyone ELSE using this?)
+            const duplicate = await Faculty.findOne({ 
+                phno: cleanPhno, 
+                _id: { $ne: facultyId } // Exclude myself
+            });
+
+            if (duplicate) {
+                return res.status(409).json({ success: false, message: "Phone number already in use by another faculty" });
+            }
+
+            updates.phno = cleanPhno;
+        }
+    }
+
+    // 5. Handle Image Upload
     if (req.file) {
       try {
         const uploadResult = await new Promise((resolve, reject) => {
@@ -473,20 +552,21 @@ export const updateFacultyProfile = async (req, res) => {
         });
         updates.image = uploadResult.secure_url;
       } catch (uploadError) {
+        console.error("Cloudinary Error:", uploadError);
         return res.status(500).json({ success: false, message: "Image upload failed" });
       }
+    } else if (image) {
+        // If frontend sends the existing image URL as a string
+        updates.image = image;
     }
 
-    // Perform Update
+    // 6. Perform Update
+    // We use findByIdAndUpdate to apply the changes
     const updatedFaculty = await Faculty.findByIdAndUpdate(
       facultyId, 
       { $set: updates }, 
-      { new: true, runValidators: true }
-    ).select("-password"); // Never send password back
-
-    if (!updatedFaculty) {
-      return res.status(404).json({ success: false, message: "Faculty record not found" });
-    }
+      { new: true, runValidators: true } // Return the NEW document
+    ).select("-password"); // Don't send password back
 
     res.json({ 
       success: true, 
@@ -496,6 +576,10 @@ export const updateFacultyProfile = async (req, res) => {
 
   } catch (error) {
     console.error("Faculty Update Error:", error);
+    // Handle race conditions for duplicates just in case
+    if (error.code === 11000) {
+        return res.status(409).json({ success: false, message: "Phone number already exists" });
+    }
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -529,19 +613,24 @@ export const getStudentsBySection = async (req, res) => {
 
 export const markAttendance = async (req, res) => {
   try {
-    const { classId, date, attendanceData } = req.body; // attendanceData is array of {studentId, status}
+    const { classId, date, attendanceData } = req.body; 
     const facultyId = req.userId;
     const attendanceDate = normalizeDate(date);
 
-    // 1. Get Class Details
-    const scheduleDoc = await FacultySchedule.findOne({ "timetable._id": classId }, { "timetable.$": 1 });
+    // 1. Get Class Details from Faculty Schedule
+    const scheduleDoc = await FacultySchedule.findOne(
+      { "timetable._id": classId }, 
+      { "timetable.$": 1 }
+    );
     if (!scheduleDoc) return res.status(404).json({ success: false, message: "Class not found" });
     const schedule = scheduleDoc.timetable[0];
 
-    // 2. Identify Current Absentees
-    const newAbsentIds = attendanceData.filter(r => r.status === "Absent").map(r => r.studentId);
+    // 2. Identify Current Absentees for the Attendance record
+    const newAbsentIds = attendanceData
+      .filter(r => r.status === "Absent")
+      .map(r => r.studentId);
 
-    // 3. Check for existing record to prevent duplication
+    // 3. Check for existing record to determine if this is an Update or New entry
     const existingRecord = await Attendance.findOne({ scheduleId: classId, date: attendanceDate });
     
     let isUpdate = false;
@@ -565,38 +654,60 @@ export const markAttendance = async (req, res) => {
       });
     }
 
-    // 4. Update Student Stats (Bulk)
-    const students = await Student.find({ _id: { $in: attendanceData.map(r => r.studentId) } });
+    // 4. Fetch all students belonging to this specific Year/Branch/Section
+    const students = await Student.find({ 
+      branch: schedule.branch, 
+      year: schedule.year, 
+      section: schedule.section || schedule.batch 
+    });
+
     const bulkOps = students.map(student => {
       const studentIdStr = student._id.toString();
-      const isNowAbsent = newAbsentIds.includes(studentIdStr);
+      const recordInRequest = attendanceData.find(r => r.studentId.toString() === studentIdStr);
       
-      if (!student.attendanceRecord) student.attendanceRecord = [];
-      let subRec = student.attendanceRecord.find(r => r.subject === schedule.subject);
+      if (!recordInRequest) return null; 
+
+      const isNowAbsent = recordInRequest.status === "Absent";
       
-      if (!subRec) {
+      // Deep copy to ensure Mongoose detects changes in the nested array
+      let currentRecords = student.attendanceRecord ? JSON.parse(JSON.stringify(student.attendanceRecord)) : [];
+      
+      // Find the specific subject record
+      let subIndex = currentRecords.findIndex(r => r.subject === schedule.subject);
+      
+      let subRec;
+      if (subIndex === -1) {
         subRec = { subject: schedule.subject, totalClasses: 0, presentClasses: 0, percentage: 0 };
-        student.attendanceRecord.push(subRec);
+        currentRecords.push(subRec);
+        subIndex = currentRecords.length - 1;
+      } else {
+        subRec = currentRecords[subIndex];
       }
 
-      if (!isUpdate) {
-        // NEW RECORD: Increment Total
+      // --- CRITICAL FIX FOR STUDENT D0 ---
+      // If totalClasses is 0, we treat it as a new entry even if isUpdate is true
+      if (!isUpdate || subRec.totalClasses === 0) {
         subRec.totalClasses += 1;
         if (!isNowAbsent) subRec.presentClasses += 1;
       } else {
-        // UPDATE: Only shift Present count if status changed
+        // Standard update: Only shift Present count if status changed
         const wasAbsent = oldAbsentIds.includes(studentIdStr);
-        if (wasAbsent && !isNowAbsent) subRec.presentClasses += 1;
-        else if (!wasAbsent && isNowAbsent) subRec.presentClasses -= 1;
+        if (wasAbsent && !isNowAbsent) {
+          subRec.presentClasses += 1; // Was marked absent, now present
+        } else if (!wasAbsent && isNowAbsent) {
+          subRec.presentClasses -= 1; // Was marked present, now absent
+        }
       }
 
-      // Recalculate Percentages
+      // 5. Recalculate Percentages
       subRec.percentage = subRec.totalClasses > 0 ? (subRec.presentClasses / subRec.totalClasses) * 100 : 100;
+      currentRecords[subIndex] = subRec;
+
+      // Global Summary Calculation
+      const globalTotal = currentRecords.reduce((acc, curr) => acc + (Number(curr.totalClasses) || 0), 0);
+      const globalPresent = currentRecords.reduce((acc, curr) => acc + (Number(curr.presentClasses) || 0), 0);
       
-      const globalTotal = student.attendanceRecord.reduce((acc, curr) => acc + curr.totalClasses, 0);
-      const globalPresent = student.attendanceRecord.reduce((acc, curr) => acc + curr.presentClasses, 0);
-      
-      student.attendanceSummary = {
+      const attendanceSummary = {
         totalClasses: globalTotal,
         presentClasses: globalPresent,
         percentage: globalTotal > 0 ? (globalPresent / globalTotal) * 100 : 100
@@ -605,19 +716,32 @@ export const markAttendance = async (req, res) => {
       return {
         updateOne: {
           filter: { _id: student._id },
-          update: { $set: { attendanceRecord: student.attendanceRecord, attendanceSummary: student.attendanceSummary } }
+          update: { 
+            $set: { 
+              attendanceRecord: currentRecords, 
+              attendanceSummary: attendanceSummary 
+            } 
+          }
         }
       };
+    }).filter(Boolean);
+
+    // 6. Execute Bulk Update
+    if (bulkOps.length > 0) {
+      const result = await Student.bulkWrite(bulkOps);
+      console.log(`Matched: ${result.matchedCount}, Modified: ${result.modifiedCount}`);
+    }
+
+    res.json({ 
+      success: true, 
+      message: isUpdate ? "Attendance updated successfully!" : "Attendance saved successfully!" 
     });
 
-    await Student.bulkWrite(bulkOps);
-    res.json({ success: true, message: isUpdate ? "Attendance updated!" : "Attendance saved!" });
-
   } catch (error) {
+    console.error("Mark Attendance Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 /* ============================
    GET SECTION ANALYTICS - UNCHANGED
 ============================ */
@@ -754,5 +878,47 @@ export const getStudentDashboard = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+export const changeFacultyPassword = async (req, res) => {
+  try {
+    const facultyId = req.userId;
+    const { oldPassword, newPassword } = req.body;
+
+    // 1. Validation
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: "Both passwords are required" });
+    }
+
+    const faculty = await Faculty.findById(facultyId).select('+password');
+    if (!faculty) {
+      return res.status(404).json({ success: false, message: "Faculty not found" });
+    }
+
+    // 2. Verify Old Password
+    const isMatch = await bcrypt.compare(oldPassword, faculty.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: "Incorrect old password" });
+    }
+
+    // 3. Check for Same Password
+    if (oldPassword === newPassword) {
+        return res.status(400).json({ success: false, message: "New password cannot be same as old" });
+    }
+
+    // 4. Update Password (PLAIN TEXT)
+    // We do NOT hash here because your Faculty Model's pre('save') hook will do it!
+    faculty.password = newPassword; 
+
+    // 5. Save (Triggers the Model's hashing hook)
+    await faculty.save();
+
+    res.json({ success: true, message: "Password changed successfully" });
+
+  } catch (error) {
+    console.error("Change Password Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

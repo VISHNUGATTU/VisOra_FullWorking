@@ -15,7 +15,8 @@ import AdminHome from "./components/home/adminHome";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import FacultyManagement from "./pages/admin/FacultyManagement";
 import StudentManagement from "./pages/admin/StudentManagement";
-import ReportsLogs from "./pages/admin/AdminReportsAndLogs";
+import AdminReports from "./pages/admin/AdminReports";
+import AdminLogs from "./pages/admin/AdminLogs"
 import Notifications from "./pages/admin/AdminNotifications";
 import Settings from "./pages/admin/AdminSettings";
 import AdminProfile from "./pages/admin/AdminProfile";
@@ -31,7 +32,8 @@ import PromoteYear from "./pages/admin/PromoteYear";
 // Faculty Pages
 import FacultyHome from "./components/home/facultyHome";
 import ManualAttendance from "./pages/faculty/ManualAttendance";
-import FacultyReportsAndLogs from "./pages/faculty/FacultyReportsAndLogs";
+import FacultyReports from "./pages/faculty/FacultyReports";
+import FacultyLogs from "./pages/faculty/FacultyLogs"
 import FacultyNotifications from "./pages/faculty/FacultyNotifications";
 import FacultySettings from "./pages/faculty/FacultySettings";
 import FacultyProfile from "./pages/faculty/FacultyProfile";
@@ -39,6 +41,7 @@ import FacultyEditProfile from "./pages/faculty/FacultyEditProfile";
 import FacultyDashboard from "./pages/faculty/FacultyDashboard";
 import FacultySchedule from "./pages/faculty/FacultySchedule";
 import AddSchedule from "./pages/faculty/AddSchedule";
+import ChangeFacultyPassword from "./pages/faculty/ChangeFacultyPassword"
 
 // Student Pages (ADD THESE IMPORTS)
 import StudentHome from "./components/home/studentHome";
@@ -47,7 +50,7 @@ import AttendanceHistory from "./pages/student/AttendanceHistory"; // Path to th
 import StudentSchedule from "./pages/student/StudentSchedule"; 
 import StudentProfile from "./pages/student/StudentProfile";
 import StudentSettings from "./pages/student/StudentSettings";
-import StudentNotifications from "./pages/student/StudentNotifications";
+import StudentNotifications from "./pages/student/StudentNotifications";  
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, authReady } = useAppContext();
@@ -77,7 +80,7 @@ function App() {
 
   return (
     <>
-      <Toaster position="top-right" />
+      <Toaster position="top-center" />
       <Routes>
         <Route path="/" element={<Login />} />
 
@@ -89,7 +92,8 @@ function App() {
                 <Route path="home" element={<AdminHome />} />
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="faculty-management" element={<FacultyManagement />} />
-                <Route path="reports-logs" element={<ReportsLogs />} />
+                <Route path="reports" element={<AdminReports />} />
+                <Route path="logs" element={<AdminLogs/>}/>
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="profile" element={<AdminProfile />} />
@@ -117,12 +121,14 @@ function App() {
                 <Route path="dashboard" element={<FacultyDashboard />} />
                 <Route path="schedule" element={<FacultySchedule />} />
                 <Route path="manual-attendance" element={<ManualAttendance />} />
-                <Route path="reports-logs" element={<FacultyReportsAndLogs />} />
+                <Route path="reports" element={<FacultyReports />} />
+                <Route path="logs" element={<FacultyLogs/>}/>
                 <Route path="notifications" element={<FacultyNotifications />} />
                 <Route path="settings" element={<FacultySettings />} />
                 <Route path="profile" element={<FacultyProfile />} />
                 <Route path="edit-profile" element={<FacultyEditProfile />} />
                 <Route path="add-schedule" element={<AddSchedule />} />
+                <Route path="change-password" element={<ChangeFacultyPassword />} />
                 <Route path="*" element={<Navigate to="home" replace />} />
               </Routes>
             </FacultyNavbar>

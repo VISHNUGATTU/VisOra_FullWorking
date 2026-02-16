@@ -15,7 +15,8 @@ import {
   markAttendance,
   getSectionAnalytics,
   getAttendanceStatus,
-  getFacultyClasses
+  getFacultyClasses,
+  changeFacultyPassword
 } from "../controllers/facultyController.js";
 import { facultyAuth } from "../middlewares/authFaculty.js";
 import  authAdmin  from "../middlewares/authAdmin.js";
@@ -29,6 +30,7 @@ facultyRouter.post("/logout", facultyAuth, logoutFaculty);
 facultyRouter.post("/add",authAdmin,upload.single("image"),addFaculty);
 facultyRouter.get("/search", authAdmin, searchFaculty);
 facultyRouter.put("/update/:facultyId",authAdmin,upload.single("image"),updateFaculty);
+facultyRouter.post('/change-password',facultyAuth,changeFacultyPassword)
 facultyRouter.delete("/delete/:facultyId",authAdmin,deleteFacultyById);
 facultyRouter.post('/add-schedule', facultyAuth, addScheduleSlot);
 facultyRouter.get('/schedule', facultyAuth, getMySchedule);

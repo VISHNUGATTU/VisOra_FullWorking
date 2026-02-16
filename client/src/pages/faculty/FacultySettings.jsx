@@ -78,7 +78,7 @@ const FacultySettings = () => {
 
           {/* Change Password */}
           <button
-            onClick={() => toast("Change password feature coming soon 🔐")}
+            onClick={() => navigate("/faculty/change-password")}
             className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
           >
             <div className="flex items-center gap-3">

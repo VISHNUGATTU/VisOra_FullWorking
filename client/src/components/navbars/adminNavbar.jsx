@@ -3,7 +3,8 @@ import { NavLink, Link } from "react-router-dom";
 import {
   FiMenu, FiHome, FiUsers, FiUser, FiLogOut,
   FiChevronDown, FiX, FiSettings, FiBell, FiFileText,
-  FiPieChart // <--- 1. Imported Graph Icon
+  FiPieChart,
+  FiActivity // <--- Imported new icon for Logs
 } from "react-icons/fi";
 import axios from "axios";
 import { useAppContext } from "../../context/AppContext";
@@ -102,7 +103,6 @@ const AdminNavbar = ({ children }) => {
         <nav className="mt-6 space-y-1 pl-4 pr-2">
           <p className="px-4 text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider">Main Menu</p>
           <SideItem to="/admin/home" icon={<FiHome />} text="Home" />
-          {/* 2. Updated Icon Here */}
           <SideItem to="/admin/dashboard" icon={<FiPieChart />} text="Dashboard" />
           <SideItem to="/admin/faculty-management" icon={<FiUsers />} text="Faculty Management" />
           <SideItem to="/admin/student-management" icon={<FiUsers />} text="Student Management" />
@@ -110,7 +110,12 @@ const AdminNavbar = ({ children }) => {
           <div className="my-4 border-t border-slate-800 mx-4"></div>
 
           <p className="px-4 text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider">System</p>
-          <SideItem to="/admin/reports-logs" icon={<FiFileText />} text="Reports & Logs" />
+          
+          {/* --- CHANGED SECTION START --- */}
+          <SideItem to="/admin/reports" icon={<FiFileText />} text="Reports" />
+          <SideItem to="/admin/logs" icon={<FiActivity />} text="Logs" />
+          {/* --- CHANGED SECTION END --- */}
+
           <SideItem to="/admin/notifications" icon={<FiBell />} text="Notifications" />
           <SideItem to="/admin/settings" icon={<FiSettings />} text="Settings" />
           <SideItem to="/admin/profile" icon={<FiUser />} text="My Profile" />

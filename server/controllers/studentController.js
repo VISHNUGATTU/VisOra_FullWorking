@@ -142,43 +142,54 @@ export const getStudentProfile = async (req, res) => {
 ============================ */
 export const addStudent = async (req, res) => {
   try {
-    const { 
-      name, 
-      password, 
-      branch, 
-      rollno, 
-      mail, 
-      phno, 
-      year, 
-      section, 
-      image 
-    } = req.body;
+    // 1. Destructure
+    let { name, password, branch, rollno, mail, phno, year, section, image } = req.body;
 
-    // --- 1. Validation ---
-    if (!name || !password || !branch || !rollno || !mail || !phno || !year || !section) {
-      return res.status(400).json({ success: false, message: "All fields are mandatory" });
+    // 2. Validation: Existence
+   if (!name || !password || !branch || !rollno || !mail || !phno || !year || !section) {
+        return res.status(400).json({ success: false, message: "All text fields are mandatory" });
+    }
+    if (!req.file && !image) {
+        return res.status(400).json({ success: false, message: "Profile image is mandatory" });
     }
 
-    // --- 2. Check Duplicates ---
-    // Note: We check rollno, mail, and phno as they are marked unique in your schema.
+    // 3. Sanitization (CRITICAL for Data Integrity)
+    name = name.trim();
+    branch = branch.trim().toUpperCase(); // Standardize branch names (e.g., "cse" -> "CSE")
+    rollno = rollno.trim().toUpperCase(); // Standardize Roll No
+    mail = mail.trim().toLowerCase();     // Standardize Email
+    phno = phno.trim();
+    section = section.trim().toUpperCase();
+
+    // 4. Validation: Format (Prevent bad data)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(mail)) return res.status(400).json({ success: false, message: "Invalid email format" });
+
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(phno)) return res.status(400).json({ success: false, message: "Phone must be 10 digits" });
+
+    // 5. Duplicate Check (User Friendly)
+    // We check this to give a nice error message, but we don't rely on it 100% due to race conditions.
     const exists = await Student.findOne({
       $or: [{ rollno }, { mail }, { phno }],
     });
 
     if (exists) {
-      let field = exists.rollno === rollno ? "Roll Number" : exists.mail === mail ? "Email" : "Phone";
+      // Helper to identify which field failed
+      let field = exists.rollno === rollno ? "Roll Number" 
+                 : exists.mail === mail ? "Email" 
+                 : "Phone Number";
       return res.status(409).json({ success: false, message: `${field} already exists.` });
     }
 
-    // --- 3. Handle Image ---
+    // 6. Image Upload
     let imageUrl = "";
     if (req.file) {
       const uploadResult = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           { folder: "student_profiles" },
           (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
+            if (error) reject(error); else resolve(result);
           }
         );
         stream.end(req.file.buffer);
@@ -188,14 +199,11 @@ export const addStudent = async (req, res) => {
       imageUrl = image;
     }
 
-    // --- 4. Create Student ---
-    // NOTE: Your studentSchema has a pre("save") hook that:
-    // 1. Sets username = rollno if username is missing.
-    // 2. Hashes the password.
-    // So we just pass the raw fields here.
+    // 7. Create Student
+    // NOTE: Ensure your Student Schema has { unique: true } on rollno, mail, and phno!
     const student = await Student.create({
       name,
-      password, // Will be hashed by Schema Hook
+      password, // Your Pre-save hook handles hashing
       branch,
       year: Number(year),
       section,
@@ -213,7 +221,16 @@ export const addStudent = async (req, res) => {
 
   } catch (error) {
     console.error("ADD STUDENT ERROR:", error);
-    res.status(500).json({ success: false, message: error.message });
+
+    // --- 8. Handle Race Conditions (The Real Integrity Check) ---
+    // If two requests happened at the same time, the Database throws error 11000
+    if (error.code === 11000) {
+        // Parse the error to find out which field was duplicated
+        const field = Object.keys(error.keyPattern)[0]; 
+        return res.status(409).json({ success: false, message: `Duplicate detected: ${field} already in use.` });
+    }
+
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
@@ -244,54 +261,115 @@ export const getStudentByRoll = async (req, res) => {
 ============================ */
 export const updateStudentByRoll = async (req, res) => {
   try {
-    const oldRollno = req.params.rollno;
+    const { rollno: oldRollno } = req.params; // Get the OLD roll number from URL
+    
+    if (!oldRollno) {
+        return res.status(400).json({ success: false, message: "Roll Number is required in URL" });
+    }
+
+    // 1. Destructure & Initialize
+    // We rename 'rollno' from body to 'newRollno' to avoid confusion
     const { name, password, branch, mail, phno, rollno: newRollno, year, section, image } = req.body;
-
     const updateData = {};
-    if (name) updateData.name = name;
-    if (branch) updateData.branch = branch;
-    if (mail) updateData.mail = mail;
-    if (phno) updateData.phno = phno;
+
+    // 2. Sanitization & Validation
+    if (name) updateData.name = name.trim();
+    if (branch) updateData.branch = branch.trim().toUpperCase();
     if (year) updateData.year = Number(year);
-    if (section) updateData.section = section;
+    if (section) updateData.section = section.trim().toUpperCase();
 
-    // IMPORTANT: If Roll Number changes, Username MUST change to match (based on your schema)
+    // 3. Handle Sensitive Unique Fields (Roll No, Email, Phone)
+    const conflictQuery = { 
+        $and: [
+            { rollno: { $ne: oldRollno } }, // Exclude the CURRENT student
+            { $or: [] } 
+        ] 
+    };
+
+    // --- Validate Email ---
+    if (mail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(mail)) return res.status(400).json({ success: false, message: "Invalid email format" });
+        
+        updateData.mail = mail.trim().toLowerCase();
+        conflictQuery.$and[1].$or.push({ mail: updateData.mail });
+    }
+
+    // --- Validate Phone ---
+    if (phno) {
+        const phoneRegex = /^\d{10}$/;
+        if (!phoneRegex.test(phno)) return res.status(400).json({ success: false, message: "Phone must be 10 digits" });
+        
+        updateData.phno = phno.trim();
+        conflictQuery.$and[1].$or.push({ phno: updateData.phno });
+    }
+
+    // --- Handle Roll Number Change ---
     if (newRollno) {
-        updateData.rollno = newRollno;
-        updateData.username = newRollno; 
+        const cleanRoll = newRollno.trim().toUpperCase();
+        if (cleanRoll !== oldRollno) { // Only if it's actually different
+            updateData.rollno = cleanRoll;
+            updateData.username = cleanRoll; // SYNC USERNAME WITH ROLL NO
+            conflictQuery.$and[1].$or.push({ rollno: cleanRoll });
+        }
     }
 
-    // Password hashing
-    if (password && password.trim() !== "") {
-      updateData.password = await bcrypt.hash(password, 10);
+    // 4. Check for Duplicates
+    if (conflictQuery.$and[1].$or.length > 0) {
+        const duplicate = await Student.findOne(conflictQuery);
+        if (duplicate) {
+            let msg = "Duplicate details found";
+            if (duplicate.mail === updateData.mail) msg = "Email already exists";
+            else if (duplicate.phno === updateData.phno) msg = "Phone number already exists";
+            else if (duplicate.rollno === updateData.rollno) msg = "Roll Number already exists";
+            
+            return res.status(409).json({ success: false, message: msg });
+        }
     }
 
-    // Image logic
+    // 5. Password Hashing
+    if (password && password.trim().length > 0) {
+        if (password.length < 6) return res.status(400).json({ success: false, message: "Password too short" });
+        updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    // 6. Image Upload
     if (req.file) {
-      const uploadResult = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "students" },
-          (error, result) => (error ? reject(error) : resolve(result))
-        );
-        stream.end(req.file.buffer);
-      });
-      updateData.image = uploadResult.secure_url;
+      try {
+        const uploadResult = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                { folder: "students" },
+                (error, result) => (error ? reject(error) : resolve(result))
+            );
+            stream.end(req.file.buffer);
+        });
+        updateData.image = uploadResult.secure_url;
+      } catch (err) {
+         return res.status(500).json({ success: false, message: "Image upload failed" });
+      }
     } else if (image) {
       updateData.image = image;
     }
 
-    const updated = await Student.findOneAndUpdate(
+    // 7. Perform Update
+    const updatedStudent = await Student.findOneAndUpdate(
       { rollno: oldRollno },
       { $set: updateData },
-      { new: true, runValidators: true }
-    ).select("-password");
+      { new: true, runValidators: true } // Return new doc
+    ).select("-password"); // Don't send password back
 
-    if (!updated) return res.status(404).json({ success: false, message: "Student not found" });
+    if (!updatedStudent) {
+        return res.status(404).json({ success: false, message: "Student not found" });
+    }
 
-    res.json({ success: true, message: "Student updated successfully", student: updated });
+    res.json({ success: true, message: "Student updated successfully", student: updatedStudent });
+
   } catch (error) {
-    if (error.code === 11000) return res.status(409).json({ success: false, message: "New Roll No or Email already exists" });
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Update Error:", error);
+    if (error.code === 11000) {
+        return res.status(409).json({ success: false, message: "Duplicate data detected" });
+    }
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
