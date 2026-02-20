@@ -12,9 +12,10 @@ export const facultyAuth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Verify Role
-    if (decoded.role !== "FACULTY") {
-      return res.status(403).json({ success: false, message: "Access Denied: Faculty Only" });
-    }
+    // Change to case-insensitive or match your Login Controller
+if (decoded.role.toUpperCase() !== "FACULTY") { 
+  return res.status(403).json({ success: false, message: "Access Denied" });
+}
 
     // 🔥 OPTIMIZATION: Use .select("-password") to ensure security
     const faculty = await Faculty.findById(decoded.id).select("-password").lean();

@@ -1,21 +1,35 @@
-export const logActivity = (req, message = "") => {
-  // Only log in development
-  if (process.env.NODE_ENV === "development") return;
+import Log from '../models/Log.js';
 
+/**
+ * @param {string} actionType - E.g., 'UPDATE_PROFILE', 'ADD_STUDENT'
+ * @param {string} title - Short summary of the action
+ * @param {string} message - Detailed description
+ * @param {Object} actor - { userId, role, name, ipAddress }
+ * @param {Object} metadata - Any extra data (old values, IDs, etc.)
+ * @param {string} status - 'Success', 'Failed', or 'Warning'
+ */
+export const logAction = async ({ 
+  actionType, 
+  title, 
+  message, 
+  actor, 
+  metadata = {}, 
+  status = 'Success' 
+}) => {
   try {
-    const safeLog = {
+    await Log.create({
+      actionType: actionType.toUpperCase(),
+      title,
       message,
-      method: req.method,
-      url: req.originalUrl,
-      body: req.body,
-      params: req.params,
-      query: req.query,
-      ip: req.ip,
-      user: req.user?._id || null,
-      time: new Date().toISOString(),
-    };
-
-    console.log(JSON.stringify(safeLog, null, 2));
+      actor: {
+        userId: actor?.userId,
+        role: actor?.role || 'System',
+        name: actor?.name || 'System',
+        ipAddress: actor?.ipAddress || ''
+      },
+      metadata,
+      status
+    });
   } catch (error) {
     console.error("Logger Error:", error.message);
   }

@@ -16,9 +16,11 @@ import {
   getSectionAnalytics,
   getAttendanceStatus,
   getFacultyClasses,
-  changeFacultyPassword
+  changeFacultyPassword,
+  getAllFacultyList
 } from "../controllers/facultyController.js";
 import { facultyAuth } from "../middlewares/authFaculty.js";
+import {studentAuth} from "../middlewares/authStudent.js"
 import  authAdmin  from "../middlewares/authAdmin.js";
 import {upload} from "../configs/multer.js";
 
@@ -28,7 +30,7 @@ facultyRouter.post("/login", loginFaculty);
 facultyRouter.get("/is-auth", facultyAuth, isFacultyAuth);
 facultyRouter.post("/logout", facultyAuth, logoutFaculty);
 facultyRouter.post("/add",authAdmin,upload.single("image"),addFaculty);
-facultyRouter.get("/search", authAdmin, searchFaculty);
+facultyRouter.get("/search",searchFaculty);
 facultyRouter.put("/update/:facultyId",authAdmin,upload.single("image"),updateFaculty);
 facultyRouter.post('/change-password',facultyAuth,changeFacultyPassword)
 facultyRouter.delete("/delete/:facultyId",authAdmin,deleteFacultyById);
@@ -41,6 +43,7 @@ facultyRouter.post('/mark-attendance', facultyAuth, markAttendance);
 facultyRouter.get('/analytics', facultyAuth, getSectionAnalytics);
 facultyRouter.get('/attendance-status', facultyAuth, getAttendanceStatus);
 facultyRouter.get('/classes', facultyAuth, getFacultyClasses);
+facultyRouter.get('/all',isFacultyAuth, getAllFacultyList);
 
 
 

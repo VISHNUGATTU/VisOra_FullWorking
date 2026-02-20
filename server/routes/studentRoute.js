@@ -17,6 +17,7 @@ import {
   updateStudentSettings,
 } from "../controllers/studentController.js";
 import { studentAuth } from "../middlewares/authStudent.js";
+import {facultyAuth} from '../middlewares/authFaculty.js'
 import authAdmin from "../middlewares/authAdmin.js";
 import { upload } from "../configs/multer.js";
 
@@ -44,5 +45,6 @@ studentRouter.get("/by-roll/:rollno", authAdmin, getStudentByRoll);
 studentRouter.put("/update/:rollno", authAdmin, upload.single("image"), updateStudentByRoll);
 studentRouter.delete("/delete/:id", authAdmin, deleteStudentByRoll);
 studentRouter.get("/search", authAdmin, searchStudents);
+studentRouter.get('/faculty-search', facultyAuth, searchStudents);
 
 export default studentRouter;

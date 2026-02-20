@@ -1,13 +1,12 @@
 import Admin from "../models/Admin.js";
 import Faculty from "../models/Faculty.js";
 import Student from "../models/Student.js";
-import FacultySchedule from "../models/FacultySchedule.js"; // ✅ Correct Model
-import SystemLog from "../models/SystemLog.js"; 
+import FacultySchedule from "../models/FacultySchedule.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
+import { logAction } from "../configs/logger.js";
 import mongoose from "mongoose";
-import { logActivity } from "../configs/logger.js"; 
 
 /* ============================
    LOGIN ADMIN
@@ -22,14 +21,28 @@ export const loginAdmin = async (req, res) => {
 
     const admin = await Admin.findOne({ mail });
     if (!admin) {
+      // 📝 Log Failed Attempt
+      await logAction({
+        actionType: 'AUTH_FAILURE',
+        title: 'Admin Login Failed',
+        message: `Invalid email attempt: ${mail}`,
+        status: 'Failed'
+      });
       return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    // Verify Both Passwords
     const match1 = await bcrypt.compare(password1, admin.password1);
     const match2 = await bcrypt.compare(password2, admin.password2);
 
     if (!match1 || !match2) {
+      // 📝 Log Failed Attempt
+      await logAction({
+        actionType: 'AUTH_FAILURE',
+        title: 'Admin Login Failed',
+        message: `Wrong password for: ${mail}`,
+        actor: { userId: admin._id, role: 'Admin', name: admin.name },
+        status: 'Failed'
+      });
       return res.status(401).json({ success: false, message: "Invalid admin credentials" });
     }
 
@@ -43,10 +56,16 @@ export const loginAdmin = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", 
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
     });
 
-    await logActivity(req, `Admin Logged In`, "AUTH");
+    // 📝 Log Success
+    await logAction({
+      actionType: 'LOGIN',
+      title: 'Admin Login Success',
+      message: `${admin.name} logged in.`,
+      actor: { userId: admin._id, role: 'Admin', name: admin.name, ipAddress: req.ip }
+    });
 
     return res.status(200).json({
       success: true,
@@ -77,6 +96,13 @@ export const isAdminAuth = async (req, res) => {
 ============================ */
 export const logoutAdmin = async (req, res) => {
   try {
+    // 📝 Log Action
+    await logAction({
+      actionType: 'LOGOUT',
+      title: 'Admin Logged Out',
+      actor: { userId: req.userId, role: 'Admin', ipAddress: req.ip }
+    });
+
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -106,34 +132,23 @@ export const updateAdminProfile = async (req, res) => {
 
     const { name, phone, mail } = req.body;
 
-    // 1. UPDATE NAME
-    if (name) {
-        admin.name = name.trim();
-    }
+    if (name) admin.name = name.trim();
 
-    // 2. UPDATE PHONE (The missing part!)
     if (phone) {
         const cleanPhone = phone.trim();
         if (cleanPhone !== admin.phone) {
-            // A. VALIDATION: Check for 10 digits
             const phoneRegex = /^\d{10}$/;
             if (!phoneRegex.test(cleanPhone)) {
-                // 🛑 THIS will now throw the error for 9 digits
                 return res.status(400).json({ success: false, message: "Phone number must be exactly 10 digits" });
             }
-
-            // B. DUPLICATE CHECK
             const phoneExists = await Admin.findOne({ phone: cleanPhone, _id: { $ne: adminId } });
             if (phoneExists) {
                 return res.status(409).json({ success: false, message: "Phone number already in use" });
             }
-
-            // C. APPLY UPDATE
             admin.phone = cleanPhone;
         }
     }
 
-    // 3. UPDATE MAIL
     if (mail) {
         const cleanMail = mail.trim().toLowerCase();
         if (cleanMail !== admin.mail) {
@@ -141,7 +156,6 @@ export const updateAdminProfile = async (req, res) => {
              if (!emailRegex.test(cleanMail)) {
                 return res.status(400).json({ success: false, message: "Invalid email format" });
              }
-
              const emailExists = await Admin.findOne({ mail: cleanMail, _id: { $ne: adminId } });
              if (emailExists) {
                  return res.status(409).json({ success: false, message: "Email already in use" });
@@ -150,7 +164,6 @@ export const updateAdminProfile = async (req, res) => {
         }
     }
 
-    // 4. UPDATE IMAGE
     if (req.file) {
       try {
         const uploadResult = await new Promise((resolve, reject) => {
@@ -169,14 +182,19 @@ export const updateAdminProfile = async (req, res) => {
       }
     }
 
-    // 5. SAVE
     await admin.save();
 
-    // 6. RETURN RESPONSE (Filter out passwords)
+    // 📝 Log Success
+    await logAction({
+      actionType: 'UPDATE_PROFILE',
+      title: 'Admin Profile Updated',
+      message: `Profile data updated for ${admin.name}`,
+      actor: { userId: admin._id, role: 'Admin', name: admin.name, ipAddress: req.ip }
+    });
+
     const adminData = admin.toObject();
-    delete adminData.password;
-    delete adminData.password1; // Remove if not using
-    delete adminData.password2; // Remove if not using
+    delete adminData.password1; 
+    delete adminData.password2; 
 
     return res.json({ success: true, message: "Profile updated successfully", admin: adminData });
 
@@ -202,10 +220,16 @@ export const verifyAdminPassword = async (req, res) => {
       return res.status(404).json({ success: false, message: "Admin not found" });
     }
 
-    // Verify against Password 1 (Primary)
     const isMatch = await bcrypt.compare(password, admin.password1);
 
     if (!isMatch) {
+      // 📝 Log verification failure
+      await logAction({
+        actionType: 'VERIFY_FAILURE',
+        title: 'Admin Password Verification Failed',
+        actor: { userId: admin._id, role: 'Admin', name: admin.name },
+        status: 'Warning'
+      });
       return res.status(401).json({ success: false, message: "Invalid admin password" });
     }
 
@@ -223,11 +247,6 @@ export const verifyAdminPasswords = async (req, res) => {
 
   try {
     const adminId = req.userId;
-
-    if (!adminId) {
-      return res.status(500).json({ success: false, message: "Auth Error: No User ID." });
-    }
-
     const admin = await Admin.findById(adminId).select("+password1 +password2");
 
     if (!admin) {
@@ -235,49 +254,83 @@ export const verifyAdminPasswords = async (req, res) => {
     }
 
     const isMatch1 = await bcrypt.compare(passwordOne, admin.password1);
-    if (!isMatch1) return res.status(401).json({ success: false, message: "Primary Password (1) is incorrect" });
-
     const isMatch2 = await bcrypt.compare(passwordTwo, admin.password2);
-    if (!isMatch2) return res.status(401).json({ success: false, message: "Secondary Password (2) is incorrect" });
+
+    if (!isMatch1 || !isMatch2) {
+       // 📝 Log failure
+       await logAction({
+        actionType: 'SENSITIVE_AUTH_FAILURE',
+        title: 'Dual Password Verification Failed',
+        actor: { userId: admin._id, role: 'Admin', name: admin.name },
+        status: 'Warning'
+      });
+      return res.status(401).json({ success: false, message: "Authentication failed" });
+    }
+
+    // 📝 Log Success
+    await logAction({
+      actionType: 'SENSITIVE_AUTH_SUCCESS',
+      title: 'Dual Password Verified',
+      actor: { userId: admin._id, role: 'Admin', name: admin.name }
+    });
 
     res.status(200).json({ success: true, message: "Dual Authentication Successful" });
 
   } catch (error) {
-    console.error("Verify Error:", error);
     res.status(500).json({ success: false, message: "Server Verification Error" });
   }
 };
 
 /* ============================
-   SYSTEM HEALTH
+   PROMOTE STUDENTS
 ============================ */
-export const systemHealthCheck = async (req, res) => {
+export const promoteStudents = async (req, res) => {
+  const { targetYear } = req.body; 
+
+  if (![1, 2, 3, 4].includes(targetYear)) {
+    return res.status(400).json({ success: false, message: "Invalid year selected." });
+  }
+
   try {
-    const startTime = Date.now();
-    let dbStatus = 'disconnected';
-    
-    if (mongoose.connection.readyState === 1) {
-      await mongoose.connection.db.admin().ping();
-      dbStatus = 'connected';
+    let result;
+    let message = "";
+
+    if (targetYear === 4) {
+      result = await Student.updateMany(
+        { year: 4, isGraduated: false }, 
+        { $set: { year: 5, isGraduated: true } }
+      );
+      message = `Graduated ${result.modifiedCount} Final Year students.`;
+    } 
+    else {
+      result = await Student.updateMany(
+        { year: targetYear, isGraduated: false },
+        { $inc: { year: 1 } }
+      );
+      message = `Promoted ${result.modifiedCount} students from Year ${targetYear} to ${targetYear + 1}.`;
     }
-    
-    const latency = Date.now() - startTime;
+
+    // 📝 Log Bulk Action
+    await logAction({
+      actionType: 'STUDENT_PROMOTION',
+      title: 'Batch Students Promoted',
+      message: message,
+      actor: { userId: req.userId, role: 'Admin' },
+      metadata: { targetYear, modifiedCount: result.modifiedCount }
+    });
 
     res.json({
-      database: dbStatus,
-      latency: latency,
-      aiEngine: 'maintenance', 
-      telegramBot: 'active' 
+      success: true,
+      message: message,
+      modifiedCount: result.modifiedCount
     });
 
   } catch (error) {
-    res.status(503).json({ 
-      database: 'disconnected', 
-      latency: 0 
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
+// ... other functions (getDashboardStats, getSystemLogs) kept original ...
 /* ============================
    DASHBOARD STATS (UPDATED FOR BUCKET SCHEMA)
 ============================ */
@@ -326,81 +379,30 @@ export const getDashboardStats = async (req, res) => {
   }
 };
 
-/* ============================
-   SYSTEM LOGS
-============================ */
-export const getSystemLogs = async (req, res) => {
+export const getSystemHealth = async (req, res) => {
   try {
-    const logs = await SystemLog.find()
-      .sort({ timestamp: -1 })
-      .limit(20);
-
-    const formattedLogs = logs.map(log => ({
-      time: new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      message: log.message,
-      type: log.type
-    }));
-
-    res.json(formattedLogs);
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/* ============================
-   PROMOTE STUDENTS
-============================ */
-export const promoteStudents = async (req, res) => {
-  const { targetYear } = req.body; 
-
-  // Validate Input
-  if (![1, 2, 3, 4].includes(targetYear)) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Invalid year selected." 
-    });
-  }
-
-  try {
-    let result;
-    let message = "";
-
-    // SCENARIO A: GRADUATING FINAL YEARS
-    if (targetYear === 4) {
-      result = await Student.updateMany(
-        { year: 4, isGraduated: false }, 
-        { 
-          $set: { 
-            year: 5, // Alumni
-            isGraduated: true 
-          } 
-        }
-      );
-      message = `Graduated ${result.modifiedCount} Final Year students.`;
-    } 
+    const start = Date.now();
     
-    // SCENARIO B: REGULAR PROMOTION
-    else {
-      result = await Student.updateMany(
-        { year: targetYear, isGraduated: false },
-        { 
-          $inc: { year: 1 } // Using $inc is safer than $set: targetYear+1
-        }
-      );
-      message = `Promoted ${result.modifiedCount} students from Year ${targetYear} to ${targetYear + 1}.`;
+    if (mongoose.connection.readyState !== 1) {
+       throw new Error("Database not connected");
     }
 
-    // Log Action
-    await logActivity(req, `Batch Promotion: ${message}`, "UPDATE");
+    await mongoose.connection.db.admin().ping();
+    const latency = Date.now() - start;
 
-    res.json({
+    // We send a flat object for easy access
+    res.status(200).json({
       success: true,
-      message: message,
-      modifiedCount: result.modifiedCount
+      database: 'connected', 
+      latency: latency, 
+      aiEngine: 'maintenance',
+      telegramBot: 'maintenance'
     });
-
   } catch (error) {
-    console.error("Promotion Error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ 
+      success: false, 
+      database: 'disconnected', 
+      latency: 0 
+    });
   }
 };

@@ -10,6 +10,9 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 import studentRouter from "./routes/studentRoute.js";
 import facultyRouter from "./routes/facultyRoute.js";
 import adminRouter from "./routes/adminRoute.js";
+import logRouter from "./routes/logRoute.js";
+import reportRouter from "./routes/reportRoute.js"
+import notificationRouter from "./routes/notificationRoute.js"
 
 // Load env variables
 dotenv.config();
@@ -39,6 +42,9 @@ app.get("/", (req, res) => {
 app.use("/api/student", studentRouter);
 app.use("/api/faculty", facultyRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/logs",logRouter);
+app.use("/api/reports",reportRouter);
+app.use("/api/notifications",notificationRouter);
 
 // Global error handler
 app.use((err, req, res, next) => {

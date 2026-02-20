@@ -5,11 +5,10 @@ import {
   logoutAdmin,
   updateAdminProfile,
   verifyAdminPassword,
-  systemHealthCheck,
   getDashboardStats,
-  getSystemLogs,
   verifyAdminPasswords,
-  promoteStudents
+  promoteStudents,
+  getSystemHealth
 } from "../controllers/adminController.js";
 import authAdmin  from "../middlewares/authAdmin.js";
 import  {upload}  from "../configs/multer.js";
@@ -24,9 +23,8 @@ adminRouter.put("/update",authAdmin,upload.single("image"),updateAdminProfile);
 adminRouter.post("/verify-password", authAdmin, verifyAdminPassword);
 adminRouter.post("/verify-passwords", authAdmin, verifyAdminPasswords);
 adminRouter.put("/promote-batch", authAdmin, promoteStudents);
-adminRouter.get('/system/health',authAdmin, systemHealthCheck);
 adminRouter.get('/stats',authAdmin, getDashboardStats);
-adminRouter.get('/logs',authAdmin, getSystemLogs);
+adminRouter.get('/health',authAdmin,getSystemHealth)
 
 
 export default adminRouter;

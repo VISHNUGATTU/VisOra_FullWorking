@@ -28,6 +28,7 @@ import AddFaculty from "./pages/admin/AddFaculty";
 import UpdateFaculty from "./pages/admin/UpdateFaculty";
 import DeleteFaculty from "./pages/admin/DeleteFaculty";
 import PromoteYear from "./pages/admin/PromoteYear";
+import AlertFaculty from "./pages/admin/AlertFaculty";
 
 // Faculty Pages
 import FacultyHome from "./components/home/facultyHome";
@@ -51,6 +52,9 @@ import StudentSchedule from "./pages/student/StudentSchedule";
 import StudentProfile from "./pages/student/StudentProfile";
 import StudentSettings from "./pages/student/StudentSettings";
 import StudentNotifications from "./pages/student/StudentNotifications";  
+import StudentReports from "./pages/student/StudentReports"
+import StudentLogs from "./pages/student/StudentLogs";
+
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, authReady } = useAppContext();
@@ -95,6 +99,7 @@ function App() {
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="logs" element={<AdminLogs/>}/>
                 <Route path="notifications" element={<Notifications />} />
+                <Route path="alert-faculty" element={<AlertFaculty />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="profile" element={<AdminProfile />} />
                 <Route path="edit-profile" element={<EditProfile />} />
@@ -147,6 +152,8 @@ function App() {
                 <Route path="profile" element={<StudentProfile />} />
                 <Route path="settings" element={<StudentSettings />} />
                 <Route path="notifications" element={<StudentNotifications />} />
+                <Route path="logs" element={<StudentLogs />} />
+                <Route path="reports" element={<StudentReports/>}/>
                 <Route path="*" element={<Navigate to="home" replace />} />
               </Routes>
             </StudentNavbar>

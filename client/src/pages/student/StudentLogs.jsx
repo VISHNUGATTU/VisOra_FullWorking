@@ -3,7 +3,7 @@ import { Trash2, RefreshCw, AlertTriangle, CheckCircle, XCircle, X, Clock, User 
 import { useAppContext } from '../../context/AppContext';
 import { toast } from 'react-hot-toast';
 
-const FacultyLogs = () => {
+const StudentLogs = () => {
   const { axios } = useAppContext();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +19,8 @@ const FacultyLogs = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get('/api/logs/faculty');
+      // Fetching from the student logs endpoint
+      const res = await axios.get('/api/logs/student');
       if (res.data.success) {
         setLogs(res.data.data);
       }
@@ -58,7 +59,8 @@ const FacultyLogs = () => {
 
   const confirmClearAll = async () => {
     try {
-      const res = await axios.delete('/api/logs/faculty');
+      // Clearing student specific logs
+      const res = await axios.delete('/api/logs/student');
       if (res.data.success) {
         setLogs([]);
         setShowClearAllModal(false);
@@ -90,7 +92,7 @@ const FacultyLogs = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">My Activity Logs</h1>
-          <p className="text-gray-500 text-sm">Review your administrative actions and system interactions.</p>
+          <p className="text-gray-500 text-sm">Review your account activity and system interactions.</p>
         </div>
         <div className="space-x-2 flex">
           <button 
@@ -255,4 +257,4 @@ const FacultyLogs = () => {
   );
 };
 
-export default FacultyLogs;
+export default StudentLogs;

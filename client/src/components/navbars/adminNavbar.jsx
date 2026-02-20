@@ -4,7 +4,7 @@ import {
   FiMenu, FiHome, FiUsers, FiUser, FiLogOut,
   FiChevronDown, FiX, FiSettings, FiBell, FiFileText,
   FiPieChart,
-  FiActivity // <--- Imported new icon for Logs
+  FiActivity 
 } from "react-icons/fi";
 import axios from "axios";
 import { useAppContext } from "../../context/AppContext";
@@ -26,10 +26,13 @@ const AdminNavbar = ({ children }) => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [imgError, setImgError] = useState(false); 
   const dropdownRef = useRef(null);
+  
+  // --- ADDED: Notification State ---
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  /* ================= FETCH ADMIN PROFILE ================= */
+  /* ================= FETCH ADMIN PROFILE & NOTIFICATIONS ================= */
   useEffect(() => {
-    const fetchAdmin = async () => {
+    const fetchAdminData = async () => {
       if (!authReady) return;
       if (!user?.token || user.role !== 'admin') {
         setLoadingProfile(false);
@@ -38,19 +41,27 @@ const AdminNavbar = ({ children }) => {
 
       try {
         setLoadingProfile(true);
-        const res = await axios.get(`/api/admin/is-auth`);
-        if (res.data.success) {
-          setAdminInfo(res.data.admin);
+        // Fetch Profile
+        const profileRes = await axios.get(`/api/admin/is-auth`);
+        if (profileRes.data.success) {
+          setAdminInfo(profileRes.data.admin);
         }
+
+        // --- ADDED: Fetch Unread Notifications ---
+        const notifRes = await axios.get(`/api/notifications/admin`);
+        if (notifRes.data.success) {
+          setUnreadCount(notifRes.data.unread || 0);
+        }
+        
       } catch (err) {
-        console.error("Error fetching admin profile:", err);
+        console.error("Error fetching admin data:", err);
       } finally {
         setLoadingProfile(false);
       }
     };
 
-    fetchAdmin();
-  }, [authReady, user?.token, user?.role, setAdminInfo]);
+    fetchAdminData();
+  }, [authReady, user?.token, user?.role, setAdminInfo, axios]);
 
   /* ================= CLOSE PROFILE ON OUTSIDE CLICK ================= */
   useEffect(() => {
@@ -111,10 +122,8 @@ const AdminNavbar = ({ children }) => {
 
           <p className="px-4 text-xs font-bold text-slate-500 uppercase mb-2 tracking-wider">System</p>
           
-          {/* --- CHANGED SECTION START --- */}
           <SideItem to="/admin/reports" icon={<FiFileText />} text="Reports" />
           <SideItem to="/admin/logs" icon={<FiActivity />} text="Logs" />
-          {/* --- CHANGED SECTION END --- */}
 
           <SideItem to="/admin/notifications" icon={<FiBell />} text="Notifications" />
           <SideItem to="/admin/settings" icon={<FiSettings />} text="Settings" />
@@ -155,60 +164,77 @@ const AdminNavbar = ({ children }) => {
             </Link>
           </div>
 
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full border border-transparent hover:bg-gray-50 hover:border-gray-200 transition-all focus:outline-none group"
+          {/* --- ADDED: Wrapped Notification Bell & Profile Dropdown in a flex container --- */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            
+            {/* Notification Bell */}
+            <Link 
+              to="/admin/notifications" 
+              className="relative p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-full transition-colors focus:outline-none"
             >
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-semibold text-gray-700 group-hover:text-indigo-600 transition-colors">
-                  {loadingProfile ? "Loading..." : adminInfo?.name || "Admin"}
-                </p>
-                <p className="text-xs text-gray-500 font-medium lowercase">
-                  {user?.role || "admin"}
-                </p>
-              </div>
+              <FiBell size={22} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
 
-              <div className="relative">
-                {loadingProfile ? (
-                  <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse border-2 border-white shadow-sm" />
-                ) : (
-                  <img
-                    src={getProfileImage()}
-                    alt="Profile"
-                    onError={() => setImgError(true)}
-                    className="h-10 w-10 rounded-full object-cover border-2 border-white shadow-sm group-hover:shadow-md transition-shadow bg-indigo-100"
-                  />
-                )}
-                <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
-              </div>
-              
-              <FiChevronDown
-                className={`text-gray-400 transition-transform duration-200 mx-1 ${profileOpen ? "rotate-180 text-indigo-600" : ""}`}
-              />
-            </button>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full border border-transparent hover:bg-gray-50 hover:border-gray-200 transition-all focus:outline-none group"
+              >
+                <div className="text-right hidden md:block">
+                  <p className="text-sm font-semibold text-gray-700 group-hover:text-indigo-600 transition-colors">
+                    {loadingProfile ? "Loading..." : adminInfo?.name || "Admin"}
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium lowercase">
+                    {user?.role || "admin"}
+                  </p>
+                </div>
 
-            {profileOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 ring-1 ring-black ring-opacity-5 py-1 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900">Signed in as</p>
-                  <p className="text-sm text-gray-500 truncate">{adminInfo?.mail || "admin@visora.com"}</p>
+                <div className="relative">
+                  {loadingProfile ? (
+                    <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse border-2 border-white shadow-sm" />
+                  ) : (
+                    <img
+                      src={getProfileImage()}
+                      alt="Profile"
+                      onError={() => setImgError(true)}
+                      className="h-10 w-10 rounded-full object-cover border-2 border-white shadow-sm group-hover:shadow-md transition-shadow bg-indigo-100"
+                    />
+                  )}
+                  <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
                 </div>
-                <div className="py-1">
-                  <DropdownItem to="/admin/profile" icon={<FiUser />} text="My Profile" />
-                  <DropdownItem to="/admin/settings" icon={<FiSettings />} text="Settings" />
+                
+                <FiChevronDown
+                  className={`text-gray-400 transition-transform duration-200 mx-1 ${profileOpen ? "rotate-180 text-indigo-600" : ""}`}
+                />
+              </button>
+
+              {profileOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 ring-1 ring-black ring-opacity-5 py-1 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">Signed in as</p>
+                    <p className="text-sm text-gray-500 truncate">{adminInfo?.mail || "admin@visora.com"}</p>
+                  </div>
+                  <div className="py-1">
+                    <DropdownItem to="/admin/profile" icon={<FiUser />} text="My Profile" />
+                    <DropdownItem to="/admin/settings" icon={<FiSettings />} text="Settings" />
+                  </div>
+                  <div className="border-t border-gray-100 my-1"></div>
+                  <div className="py-1">
+                    <button
+                      onClick={logout}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <FiLogOut size={16} /> Sign Out
+                    </button>
+                  </div>
                 </div>
-                <div className="border-t border-gray-100 my-1"></div>
-                <div className="py-1">
-                  <button
-                    onClick={logout}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                  >
-                    <FiLogOut size={16} /> Sign Out
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </header>
 
