@@ -38,10 +38,17 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: [
+      "http://localhost:5173",
+      process.env.FRONTEND_URL
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true
   })
 );
+
+// Important: handle preflight manually
+app.options("*", cors());
 // ✅ Middlewares
 app.use(express.json());
 app.use(cookieParser());
