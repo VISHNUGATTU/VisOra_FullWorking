@@ -153,15 +153,24 @@ class VectorStore:
 
             # Optional departmental filtering (e.g., class timetable branch/section filter)
             if filter_criteria:
-                if "branch" in filter_criteria and meta.get("branch") != filter_criteria["branch"]:
-                    continue
-                if "section" in filter_criteria and meta.get("section") != filter_criteria["section"]:
-                    continue
-                if "year" in filter_criteria and meta.get("year") != filter_criteria["year"]:
-                    continue
+                if "branch" in filter_criteria and filter_criteria["branch"]:
+                    if str(meta.get("branch", "")).strip().upper() != str(filter_criteria["branch"]).strip().upper():
+                        continue
+                if "section" in filter_criteria and filter_criteria["section"]:
+                    if str(meta.get("section", "")).strip().upper() != str(filter_criteria["section"]).strip().upper():
+                        continue
+                if "year" in filter_criteria and filter_criteria["year"]:
+                    try:
+                        if int(meta.get("year", 0)) != int(filter_criteria["year"]):
+                            continue
+                    except (ValueError, TypeError):
+                        pass
 
             similarity_score = float(sim)
-            if similarity_score >= threshold:
+            is_match = similarity_score >= threshold
+            print(f"[*] FAISS Search -> Top: {meta.get('rollno')} ({meta.get('name')}) | sim={similarity_score:.4f} | threshold={threshold} | identified={is_match}")
+
+            if is_match:
                 return {
                     "identified": True,
                     "similarity": round(similarity_score, 4),
@@ -179,7 +188,10 @@ class VectorStore:
                     "similarity": round(similarity_score, 4),
                     "student_id": None,
                     "rollno": None,
-                    "name": "Unknown (Low Confidence)"
+                    "name": "Unknown",
+                    "candidate_rollno": meta.get("rollno"),
+                    "candidate_name": meta.get("name"),
+                    "candidate_similarity": round(similarity_score, 4)
                 }
 
         return {

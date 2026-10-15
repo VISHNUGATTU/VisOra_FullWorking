@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "student_id": "698c256f27b9fdd9c02561d2",
+    "rollno": "25071A6720",
+    "name": "GATTU MANISH",
+    "branch": "CSE-DS",
+    "year": 1,
+    "section": "A",
+    "enrolled_at": "2026-10-15T12:43:56.699713"
+  },
+  {
+    "student_id": "698c230827b9fdd9c02561cc",
+    "rollno": "23071A6792",
+    "name": "GUMUDAVELLI MANI SAI",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": "2026-10-15T12:43:59.267891"
+  },
+  {
+    "student_id": "698c244927b9fdd9c02561cf",
+    "rollno": "23071A6788",
+    "name": "GATTU VISHNU PHANI",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": "2026-10-15T12:44:01.073097"
+  },
+  {
+    "student_id": "699354eebe42784e276b8ccb",
+    "rollno": "23071A67D0",
+    "name": "Y GAYATHRI KARTHIKEYA",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": "2026-10-15T12:44:03.230010"
+  }
+]

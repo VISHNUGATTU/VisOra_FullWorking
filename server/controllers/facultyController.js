@@ -886,10 +886,15 @@ export const getFacultyClasses = async (req, res) => {
       if (!seen.has(key)) {
         seen.add(key);
         uniqueClasses.push({
+          _id: (cls._id ? cls._id.toString() : key),
           subject: cls.subject,
           year: cls.year,
           branch: cls.branch,
-          section: cls.section || "A" 
+          section: cls.section || "A",
+          room: cls.room,
+          type: cls.type || "Lecture",
+          day: cls.day,
+          time: cls.startTime && cls.endTime ? `${cls.startTime} - ${cls.endTime}` : "Scheduled"
         });
       }
     });

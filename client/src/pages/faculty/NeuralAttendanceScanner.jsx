@@ -46,7 +46,7 @@ const NeuralAttendanceScanner = () => {
   const [simulatedThermal, setSimulatedThermal] = useState(36.5);
 
   // Session & Tracking
-  const [sessionId, setSessionId] = useState("");
+  const [sessionId, setSessionId] = useState(() => `AUDIT_SESSION_${Date.now()}`);
   const [trackedFaces, setTrackedFaces] = useState([]);
   const [verifiedStudents, setVerifiedStudents] = useState(new Map());
   const [frameCount, setFrameCount] = useState(0);
@@ -67,9 +67,13 @@ const NeuralAttendanceScanner = () => {
       setLoadingSchedule(true);
       const res = await axios.get("/api/faculty/classes");
       if (res.data.success && res.data.classes?.length > 0) {
-        setClasses(res.data.classes);
-        setSelectedClassId(res.data.classes[0]._id);
-        setSelectedClass(res.data.classes[0]);
+        const enrichedClasses = res.data.classes.map((c, i) => ({
+          ...c,
+          _id: c._id || `CLASS_${i}_${c.subject}_${c.branch}`
+        }));
+        setClasses(enrichedClasses);
+        setSelectedClassId(enrichedClasses[0]._id);
+        setSelectedClass(enrichedClasses[0]);
       }
     } catch (err) {
       console.error("Failed to fetch classes:", err);
@@ -280,10 +284,15 @@ const NeuralAttendanceScanner = () => {
       const isLive = liveness.is_live;
       const isSpoof = liveness.status === "REJECTED_SPOOF_ATTACK" || fusion.veto_triggered;
 
-      // Color coding: Green (Verified), Red (Spoof), Indigo (Tracking / Buffering)
-      let color = "#6366f1"; // default indigo
+      // Color coding:
+      // - Spoof / Veto: Red (#ef4444)
+      // - Verified & Live: Emerald Green (#10b981)
+      // - Identified (verifying pulse): Indigo (#6366f1)
+      // - Unregistered Face (Not in FAISS): Amber (#f59e0b)
+      let color = "#f59e0b"; // default amber for unknown / un-enrolled
       if (isSpoof) color = "#ef4444"; // red
-      else if (isIdentified && isLive) color = "#10b981"; // green
+      else if (isIdentified && isLive) color = "#10b981"; // emerald
+      else if (isIdentified) color = "#6366f1"; // indigo
 
       // 1. Sleek Corner Reticles
       const lineLen = Math.min(25, w * 0.25);
@@ -319,18 +328,40 @@ const NeuralAttendanceScanner = () => {
       ctx.stroke();
 
       // 2. Holographic Bounding Fill
-      ctx.fillStyle = isSpoof ? "rgba(239, 68, 68, 0.12)" : "rgba(16, 185, 129, 0.08)";
+      if (isSpoof) {
+        ctx.fillStyle = "rgba(239, 68, 68, 0.12)";
+      } else if (isIdentified && isLive) {
+        ctx.fillStyle = "rgba(16, 185, 129, 0.10)";
+      } else if (isIdentified) {
+        ctx.fillStyle = "rgba(99, 102, 241, 0.08)";
+      } else {
+        ctx.fillStyle = "rgba(245, 158, 11, 0.07)";
+      }
       ctx.fillRect(x1, y1, w, h);
 
       // 3. Label Badge
+      const hasCandidate = !isIdentified && ident.candidate_name && ident.candidate_similarity > 0.25;
       const labelText = isIdentified
         ? `${ident.name} (${ident.rollno})`
-        : `Tracking #${face.track_id}`;
-      const subText = isSpoof
-        ? "⚠️ SPOOF DETECTED: NO CAPILLARY PULSE"
-        : isIdentified
-        ? `${Math.round((ident.similarity || 0.9) * 100)}% Match | ❤️ ${liveness.heart_rate_bpm || 74} BPM`
-        : "Buffering rPPG Pulse...";
+        : hasCandidate
+        ? `Candidate: ${ident.candidate_name}`
+        : `Unregistered Face #${face.track_id}`;
+
+      let subColor = "#fcd34d"; // amber text
+      let subText = "Unenrolled in FAISS (No Vector)";
+      if (isSpoof) {
+        subColor = "#f87171";
+        subText = "⚠️ SPOOF DETECTED: NO CAPILLARY PULSE";
+      } else if (isIdentified && isLive) {
+        subColor = "#a7f3d0";
+        subText = `✅ VERIFIED ${Math.round((ident.similarity || 0.9) * 100)}% | ❤️ ${liveness.heart_rate_bpm || 74} BPM`;
+      } else if (isIdentified) {
+        subColor = "#c7d2fe";
+        subText = `Pulse Buffering... (${Math.round((ident.similarity || 0.9) * 100)}% Match)`;
+      } else if (hasCandidate) {
+        subColor = "#fed7aa"; // light orange
+        subText = `Low Confidence: ${Math.round((ident.candidate_similarity || 0) * 100)}% (Threshold: 38%)`;
+      }
 
       ctx.font = "bold 13px Inter, sans-serif";
       const textWidth = Math.max(ctx.measureText(labelText).width, ctx.measureText(subText).width) + 20;
@@ -352,7 +383,7 @@ const NeuralAttendanceScanner = () => {
       ctx.fillStyle = "#ffffff";
       ctx.fillText(labelText, x1 + 10, Math.max(10, y1 - 44) + 16);
 
-      ctx.fillStyle = isSpoof ? "#f87171" : "#a7f3d0";
+      ctx.fillStyle = subColor;
       ctx.font = "11px Inter, sans-serif";
       ctx.fillText(subText, x1 + 10, Math.max(10, y1 - 44) + 32);
     });

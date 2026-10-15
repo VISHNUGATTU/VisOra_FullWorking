@@ -25,8 +25,8 @@ class Config:
 
     # Thresholds
     DETECTION_THRESHOLD: float = float(os.getenv("DETECTION_THRESHOLD", "0.50"))
-    # Cosine similarity threshold for ArcFace 512D (>= 0.45 is strong correlation, >= 0.50 is same person)
-    COSINE_THRESHOLD: float = float(os.getenv("COSINE_THRESHOLD", "0.48"))
+    # Cosine similarity threshold for ArcFace 512D (>= 0.38 is strong match across webcam lighting variations)
+    COSINE_THRESHOLD: float = float(os.getenv("COSINE_THRESHOLD", "0.38"))
 
     # Vector Storage (FAISS)
     INDEX_PATH: Path = INDEX_DIR / "faiss_index.bin"
