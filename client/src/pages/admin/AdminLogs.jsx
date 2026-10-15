@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Trash2, RefreshCw, AlertTriangle, CheckCircle, XCircle, X } from 'lucide-react';
+import { Trash2, RefreshCw, AlertTriangle, CheckCircle, XCircle, X, Cpu } from 'lucide-react';
 
 const AdminLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -144,9 +144,15 @@ const AdminLogs = () => {
 
                     {/* Action Type */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-200 text-gray-700">
-                        {log.actionType}
-                      </span>
+                      {log.actionType?.includes("AI") || log.actionType?.includes("NEURAL") ? (
+                        <span className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 w-fit">
+                          <Cpu size={12} className="text-indigo-600" /> {log.actionType}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-200 text-gray-700">
+                          {log.actionType}
+                        </span>
+                      )}
                     </td>
 
                     {/* Actor */}

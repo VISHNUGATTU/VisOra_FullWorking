@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import toast from "react-hot-toast";
 import {
   FiUserPlus,
   FiEdit,
   FiTrash2,
   FiUsers,
   FiBriefcase,
-  FiAlertTriangle
+  FiAlertTriangle,
+  FiRefreshCw,
+  FiCpu
 } from "react-icons/fi";
 import {
   BarChart,
@@ -25,6 +28,30 @@ const StudentManagement = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [syncing, setSyncing] = useState(false);
+  const [syncStats, setSyncStats] = useState(null);
+
+  const handleSyncBiometrics = async () => {
+    try {
+      setSyncing(true);
+      toast.loading("Synchronizing student embeddings with FAISS neural store...", { id: "syncNeural" });
+      const { data } = await axios.post("/api/student/sync-neural");
+      toast.dismiss("syncNeural");
+      if (data.success) {
+        setSyncStats(data);
+        toast.success(`Synced ${data.synced} students (${data.total} total vectors) to Neural Engine!`);
+      } else {
+        toast.error(data.message || "Failed to sync biometric vectors.");
+      }
+    } catch (err) {
+      toast.dismiss("syncNeural");
+      console.error("Neural sync error:", err);
+      toast.error(err.response?.data?.message || "Error connecting to Neural Engine.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -99,9 +126,26 @@ const StudentManagement = () => {
     <div className="max-w-5xl mx-auto space-y-10 animate-fade-in-up pb-10">
       
       {/* HEADER */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Student Management</h1>
-        <p className="text-sm text-slate-500 mt-1">Manage enrollments and monitor department attendance.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Student Management</h1>
+          <p className="text-sm text-slate-500 mt-1">Manage enrollments and monitor department attendance.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {syncStats && (
+            <span className="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-medium">
+              {syncStats.synced} Enrolled in FAISS
+            </span>
+          )}
+          <button
+            onClick={handleSyncBiometrics}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-sm shadow-indigo-600/30 transition disabled:opacity-60"
+          >
+            <FiRefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+            <span>{syncing ? "Syncing FAISS..." : "Sync AI Biometrics"}</span>
+          </button>
+        </div>
       </div>
 
       {/* MAIN ACTION CARDS */}

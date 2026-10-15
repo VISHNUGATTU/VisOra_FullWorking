@@ -59,6 +59,14 @@ const studentSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    biometricEnrolled: {
+      type: Boolean,
+      default: false,
+    },
+    biometricEnrolledAt: {
+      type: Date,
+    },
+
     attendanceSummary: {
       totalClasses: { type: Number, default: 0 },
       presentClasses: { type: Number, default: 0 },

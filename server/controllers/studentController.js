@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import { logAction } from "../configs/logger.js"; // ✅ Imported Logger
+import neuralService from "../services/neuralService.js"; // 🧠 VisOra Neural Identity Engine
+
 
 /* ============================
    LOGIN STUDENT
@@ -191,6 +193,24 @@ export const addStudent = async (req, res) => {
       metadata: { rollno, branch, year }
     });
 
+    // 🧠 VisOra Neural Identity Engine: Enroll 512D ArcFace Vector into FAISS
+    if (imageUrl) {
+      neuralService.enrollStudent({
+        studentId: student._id,
+        rollno: student.rollno,
+        name: student.name,
+        branch: student.branch,
+        year: student.year,
+        section: student.section,
+        imageUrl: imageUrl
+      }).then(res => {
+        if (res && res.success) {
+          Student.findByIdAndUpdate(student._id, { biometricEnrolled: true, biometricEnrolledAt: new Date() }).exec();
+        }
+      }).catch(err => console.warn("[NeuralEnroll] Background enrollment error:", err.message));
+    }
+
+
     return res.status(201).json({
       success: true,
       message: "Student added successfully",
@@ -307,6 +327,24 @@ export const updateStudentByRoll = async (req, res) => {
       metadata: { rollno: updatedStudent.rollno }
     });
 
+    // 🧠 VisOra Neural Engine: Re-enroll vector if image was updated
+    if (updateData.image) {
+      neuralService.enrollStudent({
+        studentId: updatedStudent._id,
+        rollno: updatedStudent.rollno,
+        name: updatedStudent.name,
+        branch: updatedStudent.branch,
+        year: updatedStudent.year,
+        section: updatedStudent.section,
+        imageUrl: updateData.image
+      }).then(res => {
+        if (res && res.success) {
+          Student.findByIdAndUpdate(updatedStudent._id, { biometricEnrolled: true, biometricEnrolledAt: new Date() }).exec();
+        }
+      }).catch(err => console.warn("[NeuralEnroll] Background re-enrollment error:", err.message));
+    }
+
+
     res.json({ success: true, message: "Student updated successfully", student: updatedStudent });
 
   } catch (error) {
@@ -350,6 +388,12 @@ export const deleteStudentByRoll = async (req, res) => {
       actor: { userId: req.userId, role: 'Admin' },
       metadata: { rollno: deleted.rollno }
     });
+
+    // 🧠 VisOra Neural Engine: Remove 512D vector from FAISS index
+    neuralService.removeStudent(deleted._id).catch(err => {
+      console.warn("[NeuralEnroll] Background vector removal error:", err.message);
+    });
+
 
     res.json({
       success: true,
@@ -656,7 +700,12 @@ export const getStudentHomeData = async (req, res) => {
       greeting: student.name ? student.name.split(' ')[0] : "Student",
       overallPercentage: student.attendanceSummary?.percentage || 0,
       todaysClasses: todaysClasses || [], // Ensure this is never null/undefined
-      summary: student.attendanceSummary || { totalClasses: 0, presentClasses: 0 }
+      summary: student.attendanceSummary || { totalClasses: 0, presentClasses: 0 },
+      biometricEnrolled: student.biometricEnrolled || false,
+      biometricEnrolledAt: student.biometricEnrolledAt || null,
+      rollno: student.rollno,
+      branch: student.branch,
+      year: student.year
     });
   } catch (error) {
     console.error("Home Data Error:", error);
@@ -671,7 +720,7 @@ export const getStudentDashboard = async (req, res) => {
 
     // Fetch student and exclude sensitive data
     const student = await Student.findById(studentId)
-      .select("name rollno branch year section attendanceSummary attendanceRecord image")
+      .select("name rollno branch year section attendanceSummary attendanceRecord image biometricEnrolled biometricEnrolledAt")
       .lean();
 
     if (!student) {
@@ -705,7 +754,9 @@ export const getStudentDashboard = async (req, res) => {
         branch: student.branch,
         year: student.year,
         section: student.section,
-        image: student.image
+        image: student.image,
+        biometricEnrolled: student.biometricEnrolled || false,
+        biometricEnrolledAt: student.biometricEnrolledAt || null
       },
       overall: student.attendanceSummary || { totalClasses: 0, presentClasses: 0, percentage: 0 },
       subjects: processedSubjects
@@ -853,3 +904,80 @@ export const updatePassword = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error while updating password' });
   }
 };
+
+/* =========================================================
+   🧠 VISORA NEURAL IDENTITY ENGINE: BATCH SYNC & STATUS
+========================================================= */
+
+export const syncAllStudentsToNeural = async (req, res) => {
+  try {
+    const studentsWithPhotos = await Student.find({
+      image: { $exists: true, $ne: "" },
+      isGraduated: false
+    }).select("_id rollno name branch year section image biometricEnrolled");
+
+    if (!studentsWithPhotos.length) {
+      return res.json({ success: true, message: "No students with profile photos found.", count: 0 });
+    }
+
+    let enrolledCount = 0;
+    let failedCount = 0;
+    const errors = [];
+
+    for (const student of studentsWithPhotos) {
+      try {
+        const result = await neuralService.enrollStudent({
+          studentId: student._id,
+          rollno: student.rollno,
+          name: student.name,
+          branch: student.branch,
+          year: student.year,
+          section: student.section,
+          imageUrl: student.image
+        });
+
+        if (result && result.success) {
+          enrolledCount++;
+          student.biometricEnrolled = true;
+          student.biometricEnrolledAt = new Date();
+          await student.save();
+        } else {
+          failedCount++;
+          errors.push({ rollno: student.rollno, error: result?.error || "Enrollment failed" });
+        }
+      } catch (err) {
+        failedCount++;
+        errors.push({ rollno: student.rollno, error: err.message });
+      }
+    }
+
+    await logAction({
+      actionType: 'AI_BATCH_SYNC',
+      title: 'Neural Biometric Index Synchronized',
+      message: `Synced ${enrolledCount}/${studentsWithPhotos.length} student face vectors into FAISS`,
+      actor: { userId: req.userId, role: 'Admin' },
+      metadata: { enrolledCount, failedCount, total: studentsWithPhotos.length }
+    });
+
+    return res.json({
+      success: true,
+      message: `Neural sync complete: ${enrolledCount} enrolled, ${failedCount} failed.`,
+      total: studentsWithPhotos.length,
+      enrolled: enrolledCount,
+      failed: failedCount,
+      errors: errors.slice(0, 10)
+    });
+  } catch (error) {
+    console.error("[NeuralSync] Error:", error);
+    res.status(500).json({ success: false, message: "Failed to sync students to neural engine" });
+  }
+};
+
+export const getNeuralStatus = async (req, res) => {
+  try {
+    const health = await neuralService.checkHealth();
+    res.json({ success: true, ...health });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

@@ -1,3 +1,21 @@
 # Env files
 .env
 .env.*
+
+# Python & Engine
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.onnx
+engine/data/cache/
+engine/data/index/*.bin
+
+# Node & Dependencies
+node_modules/
+dist/
+dist-ssr/
+*.log
+
+

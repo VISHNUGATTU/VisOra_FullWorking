@@ -17,9 +17,12 @@ import {
   getAttendanceStatus,
   getFacultyClasses,
   changeFacultyPassword,
-  getAllFacultyList,
-  notifyDefaultersEmail
+  notifyDefaultersEmail,
+  markNeuralAttendance,
+  getNeuralEngineStatus,
+  getAllFacultyList
 } from "../controllers/facultyController.js";
+
 import { facultyAuth } from "../middlewares/authFaculty.js";
 import {studentAuth} from "../middlewares/authStudent.js"
 import  authAdmin  from "../middlewares/authAdmin.js";
@@ -46,7 +49,7 @@ facultyRouter.get('/attendance-status', facultyAuth, getAttendanceStatus);
 facultyRouter.get('/classes', facultyAuth, getFacultyClasses);
 facultyRouter.get('/all',isFacultyAuth, getAllFacultyList);
 facultyRouter.post('/notify-email', facultyAuth, notifyDefaultersEmail);
+facultyRouter.post('/auto-attendance', facultyAuth, markNeuralAttendance);
+facultyRouter.get('/engine-status', facultyAuth, getNeuralEngineStatus);
 
-
-
-export default facultyRouter;
+export default facultyRouter;

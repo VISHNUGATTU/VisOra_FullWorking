@@ -4,7 +4,8 @@ import {
   FiMenu, FiHome, FiUsers, FiUser, FiLogOut,
   FiChevronDown, FiX, FiSettings, FiBell, FiFileText,
   FiPieChart, FiCalendar,
-  FiActivity // <--- 1. Imported generic icon for Logs
+  FiActivity,
+  FiCpu
 } from "react-icons/fi";
 import axios from "axios";
 import { useAppContext } from "../../context/AppContext";
@@ -116,6 +117,7 @@ const FacultyNavbar = ({ children }) => {
           <SideItem to="/faculty/dashboard" icon={<FiPieChart />} text="Analytics" />
           <SideItem to="/faculty/schedule" icon={<FiCalendar />} text="My Schedule" />
           <SideItem to="/faculty/manual-attendance" icon={<FiUsers />} text="Manual Attendance" />
+          <SideItem to="/faculty/neural-attendance" icon={<FiCpu />} text="Neural Scanner (AI)" />
 
           <div className="my-4 border-t border-slate-800 mx-4"></div>
 

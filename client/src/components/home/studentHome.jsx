@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   User, Clock, BookOpen, MapPin, 
   ChevronRight, Award, AlertCircle, 
-  Calendar as CalendarIcon, Loader2
+  Calendar as CalendarIcon, Loader2,
+  ShieldCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -61,9 +62,22 @@ const StudentHome = () => {
       {/* --- HEADER --- */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-            Welcome back, {data?.greeting || "Student"}
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+              Welcome back, {data?.greeting || "Student"}
+            </h1>
+            {data?.biometricEnrolled ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <ShieldCheck size={14} className="text-emerald-600" />
+                Neural Biometrics Active
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                <AlertCircle size={14} className="text-amber-600" />
+                Biometrics Pending
+              </span>
+            )}
+          </div>
           <p className="text-gray-500 mt-1">Here is your academic overview for today.</p>
         </div>
         <div className="hidden sm:flex flex-col items-end bg-white px-5 py-3 rounded-2xl border border-gray-200 shadow-sm">

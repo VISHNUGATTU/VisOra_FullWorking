@@ -9,7 +9,9 @@ import {
   Coffee,
   ArrowRight,
   FlaskConical, // Icon for Lab
-  BookOpen      // Icon for Lecture
+  BookOpen,     // Icon for Lecture
+  Camera,
+  Cpu
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../../context/AppContext";
@@ -50,6 +52,12 @@ const FacultyHome = () => {
     lecturesToday: 0,
     labsToday: 0,
     studentsPresentToday: 0, // Placeholder until attendance API exists
+  });
+
+  const [aiEngineStatus, setAiEngineStatus] = useState({
+    online: false,
+    checking: true,
+    vectorCount: 0
   });
 
   /* ================= CLOCK & GREETING ================= */
@@ -102,6 +110,20 @@ const FacultyHome = () => {
             labsToday: labs,
             studentsPresentToday: 0 
           });
+        }
+
+        // Fetch AI Engine Status
+        try {
+          const engineRes = await axios.get('/api/faculty/engine-status');
+          if (engineRes.data) {
+            setAiEngineStatus({
+              online: engineRes.data.online,
+              checking: false,
+              vectorCount: engineRes.data.vector_store?.total_enrolled || 0
+            });
+          }
+        } catch (engineErr) {
+          setAiEngineStatus({ online: false, checking: false, vectorCount: 0 });
         }
       } catch (err) {
         console.error("Failed to load dashboard", err);
@@ -246,7 +268,14 @@ const FacultyHome = () => {
             <CheckCircle className="text-indigo-600" size={20} /> Quick Actions
           </h3>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <ActionButton
+              icon={<Camera className="text-purple-600" size={24} />}
+              title="AI Neural Scanner"
+              desc="Patent Biometric HUD"
+              onClick={() => navigate("/faculty/neural-attendance")}
+              bg="purple"
+            />
             <ActionButton
               icon={<Calendar className="text-indigo-600" size={24} />}
               title="Manage Schedule"
@@ -258,7 +287,6 @@ const FacultyHome = () => {
               icon={<Users className="text-green-600" size={24} />}
               title="Mark Attendance"
               desc="Record Student Data"
-              // Placeholder route - update when you have this page
               onClick={() => navigate("/faculty/manual-attendance")} 
               bg="green"
             />
@@ -272,7 +300,7 @@ const FacultyHome = () => {
           </div>
         </div>
 
-        {/* SYSTEM STATUS (Mock/Static for now) */}
+        {/* SYSTEM STATUS */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold text-gray-800 mb-4">
             System Connectivity
@@ -280,7 +308,11 @@ const FacultyHome = () => {
           <div className="space-y-4">
             <SystemStatusRow label="Database Connection" status="online" />
             <SystemStatusRow label="Cloudinary Storage" status="online" />
-            <SystemStatusRow label="AI Face Recognition" status="maintenance" />
+            <SystemStatusRow
+              label="AI Neural Engine"
+              status={aiEngineStatus.checking ? "checking" : aiEngineStatus.online ? "online" : "offline"}
+              extra={aiEngineStatus.online ? `${aiEngineStatus.vectorCount} vectors enrolled` : "Service offline"}
+            />
           </div>
           
           <div className="mt-6 pt-4 border-t border-gray-100">
@@ -338,20 +370,34 @@ const ActionButton = ({ icon, title, desc, onClick, bg }) => (
   </button>
 );
 
-const SystemStatusRow = ({ label, status }) => (
-  <div className="flex items-center justify-between py-2 border-b last:border-0 border-gray-50">
-    <span className="text-sm font-medium text-gray-600">{label}</span>
-    <div className="flex items-center gap-2">
-      <span
-        className={`w-2 h-2 rounded-full ${
-          status === "online" ? "bg-green-500 animate-pulse" : "bg-yellow-400"
-        }`}
-      />
-      <span className={`text-xs font-bold capitalize ${status === 'online' ? 'text-green-600' : 'text-yellow-600'}`}>
-        {status}
-      </span>
+const SystemStatusRow = ({ label, status, extra }) => {
+  let dotColor = "bg-yellow-400";
+  let textColor = "text-yellow-600";
+  if (status === "online") {
+    dotColor = "bg-green-500 animate-pulse";
+    textColor = "text-green-600";
+  } else if (status === "offline") {
+    dotColor = "bg-rose-500";
+    textColor = "text-rose-600";
+  } else if (status === "checking") {
+    dotColor = "bg-indigo-400 animate-ping";
+    textColor = "text-indigo-600";
+  }
+
+  return (
+    <div className="flex items-center justify-between py-2 border-b last:border-0 border-gray-50">
+      <div>
+        <span className="text-sm font-medium text-gray-600 block">{label}</span>
+        {extra && <span className="text-[11px] text-gray-400 block">{extra}</span>}
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+        <span className={`text-xs font-bold capitalize ${textColor}`}>
+          {status}
+        </span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default FacultyHome;

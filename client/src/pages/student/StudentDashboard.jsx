@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Book, AlertCircle, CheckCircle, Clock, Loader2, Info } from 'lucide-react';
+import { Book, AlertCircle, CheckCircle, Clock, Loader2, Info, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
@@ -69,6 +69,14 @@ const StudentDashboard = () => {
               <span>{profile.branch}</span>
               <span className="w-1 h-1 rounded-full bg-gray-600" />
               <span>Year {profile.year}</span>
+              {profile.biometricEnrolled && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-gray-600" />
+                  <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-semibold bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    <ShieldCheck size={12} /> Neural ID Enrolled
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -33,6 +33,7 @@ import AlertFaculty from "./pages/admin/AlertFaculty";
 // Faculty Pages
 import FacultyHome from "./components/home/facultyHome";
 import ManualAttendance from "./pages/faculty/ManualAttendance";
+import NeuralAttendanceScanner from "./pages/faculty/NeuralAttendanceScanner";
 import FacultyReports from "./pages/faculty/FacultyReports";
 import FacultyLogs from "./pages/faculty/FacultyLogs"
 import FacultyNotifications from "./pages/faculty/FacultyNotifications";
@@ -126,6 +127,7 @@ function App() {
                 <Route path="dashboard" element={<FacultyDashboard />} />
                 <Route path="schedule" element={<FacultySchedule />} />
                 <Route path="manual-attendance" element={<ManualAttendance />} />
+                <Route path="neural-attendance" element={<NeuralAttendanceScanner />} />
                 <Route path="reports" element={<FacultyReports />} />
                 <Route path="logs" element={<FacultyLogs/>}/>
                 <Route path="notifications" element={<FacultyNotifications />} />

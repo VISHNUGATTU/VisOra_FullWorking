@@ -17,8 +17,12 @@ import {
   updateStudentSettings,
   getSettings,
   updateProfile,
-  updatePassword
+  updatePassword,
+  syncAllStudentsToNeural,
+  getNeuralStatus
+
 } from "../controllers/studentController.js";
+
 import { studentAuth } from "../middlewares/authStudent.js";
 import {facultyAuth} from '../middlewares/authFaculty.js'
 import authAdmin from "../middlewares/authAdmin.js";
@@ -51,5 +55,7 @@ studentRouter.put("/update/:rollno", authAdmin, upload.single("image"), updateSt
 studentRouter.delete("/delete/:id", authAdmin, deleteStudentByRoll);
 studentRouter.get("/search", authAdmin, searchStudents);
 studentRouter.get('/faculty-search', facultyAuth, searchStudents);
+studentRouter.post('/sync-neural', authAdmin, syncAllStudentsToNeural);
+studentRouter.get('/neural-status', authAdmin, getNeuralStatus);
 
-export default studentRouter;
+export default studentRouter;

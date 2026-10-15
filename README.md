@@ -1,31 +1,29 @@
-# VisOra - Attendance Management System
+# VisOra: Neural Identity Engine (Indian Patent App No: 202641036876)
 
-VisOra is a comprehensive attendance management system designed for educational institutions. It provides role-based access for administrators, faculty, and students to manage and track attendance efficiently.
+VisOra is an enterprise-grade AI-powered **Invisible Auditor** and neural identity verification platform published by the **Indian Patent Office (App No: 202641036876)**. Moving beyond conventional facial recognition, VisOra combines continuous optical tracking, capillary pulse liveness detection (rPPG), and multi-sensor fusion to eradicate proxy attendance and biometric spoofing at massive scale.
 
-## Features
+---
 
-### Admin Features
-- **User Management**: Add, update, and delete faculty and student accounts
-- **Student Management**: Comprehensive student profile management
-- **Faculty Management**: Faculty profile and role management
-- **Year Promotion**: Promote students to the next academic year
-- **Reports & Logs**: System-wide reporting and logging capabilities
-- **Notifications**: Send notifications to users
-- **Settings**: Configure system settings
+## 🧠 Patented Core Architecture
 
-### Faculty Features
-- **Schedule Management**: Create and manage class schedules
-- **Attendance Tracking**: Mark attendance manually or automatically
-- **Profile Management**: Update personal information
-- **Notifications**: Receive and manage notifications
-- **Reports**: View attendance reports for assigned classes
+### 1. InsightFace Neural Core (RetinaFace + ArcFace)
+- **512-Dimensional Deep Embeddings**: Sub-millisecond facial feature vectors extracted via ArcFace backbone normalized with unit $L_2$ norm.
+- **FAISS Vector Search**: `IndexFlatIP` vector index providing cosine similarity search in $<2\text{ ms}$ over tens of thousands of student biometric vectors.
 
-### Student Features
-- **Attendance History**: View personal attendance records
-- **Schedule View**: Access class schedules
-- **Profile Management**: Update personal information
-- **Notifications**: Receive important announcements
-- **Dashboard**: Overview of attendance statistics
+### 2. CPU Optimization & Continuous Optical Tracking
+- **Adaptive Dynamic Tiling (SAHI)**: Slices high-resolution (1080p / 4K) surveillance frames into overlapping sub-patches with automated coordinate re-mapping and seam Non-Maximum Suppression (NMS) to detect distant, small classroom faces without GPU degradation.
+- **7-State Bounding-Box Kalman Filter**: Predicts and tracks facial bounding boxes $[x, y, s, r, \dot{x}, \dot{y}, \dot{s}]$ at **>5,000x CPU throughput** (~0.08 ms prediction vs ~460 ms neural detection).
+- **Hungarian Track Association**: Optimal bipartite matching with quality-aware Laplacian sharpness filtering and persistent track identity locks.
+
+### 3. Dual-Layer Anti-Spoofing & Multi-Sensor Fusion
+- **Remote Photoplethysmography (rPPG)**: Decomposes skin chrominance signals (CHROM) to extract capillary blood volume pulse (BVP). Computes cardiac pulse via Butterworth bandpass filtering (45–150 BPM) and FFT spectral concentration signal-to-noise ratio (SNR).
+- **Multi-Sensor Fusion Engine**: Fuses Face Similarity ($40\%$), rPPG Vitality ($35\%$), Thermal Skin Temp ($15\%$), and PIR Motion ($10\%$) with hard veto logic that immediately rejects paper photo attacks, digital replay attacks, and abnormal surface temperatures ($<31^\circ\text{C}$ or $>41.5^\circ\text{C}$).
+
+### 4. Seamless Node.js & React 19 Integration
+- **Biometric Vector Auto-Sync**: MongoDB student records auto-generate and synchronize FAISS face vectors upon student photo registration or batch admin sync.
+- **Live Biometric HUD Scanner**: Real-time faculty attendance viewport with holographic reticles, live BPM heart rate counters, and 1-click batch attendance submission.
+
+---
 
 ## Tech Stack
 
@@ -108,21 +106,29 @@ Before running this application, make sure you have the following installed:
 
 ## Usage
 
-### Development
+### Development (Start All 3 Services)
 
-1. **Start the backend server**
+1. **Start the Python Neural Engine (FastAPI + FAISS + InsightFace)**:
+   ```bash
+   python engine/main.py
+   # Runs on http://localhost:8000 (Swagger docs at http://localhost:8000/docs)
+   ```
+
+2. **Start the Node.js / Express Backend**:
    ```bash
    cd server
    npm run server
+   # Runs on http://localhost:5000
    ```
 
-2. **Start the frontend development server**
+3. **Start the React Frontend**:
    ```bash
    cd client
    npm run dev
+   # Runs on http://localhost:5173
    ```
 
-3. **Access the application**
+4. **Access the Application**:
    Open your browser and navigate to `http://localhost:5173`
 
 ### Production

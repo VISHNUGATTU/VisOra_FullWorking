@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trash2, RefreshCw, AlertTriangle, CheckCircle, XCircle, X, Clock, User } from 'lucide-react';
+import { Trash2, RefreshCw, AlertTriangle, CheckCircle, XCircle, X, Clock, User, Cpu } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { toast } from 'react-hot-toast';
 
@@ -151,9 +151,15 @@ const FacultyLogs = () => {
 
                     {/* Action Type */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-[10px] font-black rounded bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-tighter">
-                        {log.actionType}
-                      </span>
+                      {log.actionType === "AI_AUTO_ATTENDANCE" ? (
+                        <span className="px-2.5 py-1 text-[10px] font-black rounded-lg bg-gradient-to-r from-purple-100 to-indigo-100 text-indigo-700 border border-indigo-300 uppercase tracking-tight flex items-center gap-1 w-fit">
+                          <Cpu size={12} className="text-indigo-600" /> AI Attendance
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 text-[10px] font-black rounded bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-tighter">
+                          {log.actionType}
+                        </span>
+                      )}
                     </td>
 
                     {/* Message Details */}

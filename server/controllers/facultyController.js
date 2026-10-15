@@ -8,6 +8,8 @@ import jwt from "jsonwebtoken";
 import nodemailer from 'nodemailer';
 import { v2 as cloudinary } from "cloudinary";
 import { logAction } from "../configs/logger.js"; // ✅ Imported Logger
+import neuralService from "../services/neuralService.js"; // 🧠 VisOra Neural Identity Engine
+
 
 /* ============================
    LOGIN FACULTY
@@ -1023,3 +1025,190 @@ export const notifyDefaultersEmail = async (req, res) => {
     res.status(500).json({ success: false, message: "Server failed to dispatch bulk emails." });
   }
 };
+
+/* =========================================================
+   🧠 VISORA NEURAL IDENTITY ENGINE: AUTO ATTENDANCE
+========================================================= */
+
+export const markNeuralAttendance = async (req, res) => {
+  try {
+    const { classId, date, verifiedStudents, telemetrySummary } = req.body;
+    const facultyId = req.userId;
+    const attendanceDate = normalizeDate(date || new Date());
+
+    const scheduleDoc = await FacultySchedule.findOne(
+      { "timetable._id": classId },
+      { "timetable.$": 1 }
+    );
+    if (!scheduleDoc) return res.status(404).json({ success: false, message: "Class not found" });
+    const schedule = scheduleDoc.timetable[0];
+
+    const classWeight = schedule.type === 'Lab' ? 3 : 1;
+
+    // Fetch all students belonging to this class
+    const students = await Student.find({
+      branch: schedule.branch,
+      year: schedule.year,
+      section: schedule.section || schedule.batch,
+      isGraduated: false
+    });
+
+    if (!students.length) {
+      return res.status(404).json({ success: false, message: "No enrolled students found for this class section." });
+    }
+
+    // Extract set of verified roll numbers (upper-cased and trimmed)
+    const verifiedRollSet = new Set(
+      (verifiedStudents || []).map(item => {
+        const roll = typeof item === "string" ? item : item.rollno;
+        return roll ? String(roll).trim().toUpperCase() : null;
+      }).filter(Boolean)
+    );
+
+    // Map into present vs absent
+    const attendanceData = students.map(student => {
+      const isPresent = verifiedRollSet.has(student.rollno.trim().toUpperCase());
+      return {
+        studentId: student._id.toString(),
+        rollno: student.rollno,
+        name: student.name,
+        status: isPresent ? "Present" : "Absent"
+      };
+    });
+
+    const newAbsentIds = attendanceData
+      .filter(r => r.status === "Absent")
+      .map(r => r.studentId);
+
+    const existingRecord = await Attendance.findOne({ scheduleId: classId, date: attendanceDate });
+    let isUpdate = false;
+    let oldAbsentIds = [];
+
+    if (existingRecord) {
+      isUpdate = true;
+      oldAbsentIds = existingRecord.absentees.map(id => id.toString());
+      existingRecord.absentees = newAbsentIds;
+      await existingRecord.save();
+    } else {
+      await Attendance.create({
+        scheduleId: classId,
+        date: attendanceDate,
+        facultyId,
+        branch: schedule.branch,
+        year: schedule.year,
+        section: schedule.section || schedule.batch,
+        subject: schedule.subject,
+        absentees: newAbsentIds
+      });
+    }
+
+    // Bulk update student cumulative records
+    const bulkOps = students.map(student => {
+      const studentIdStr = student._id.toString();
+      const recordInRequest = attendanceData.find(r => r.studentId === studentIdStr);
+      if (!recordInRequest) return null;
+
+      const isNowAbsent = recordInRequest.status === "Absent";
+      let currentRecords = student.attendanceRecord ? JSON.parse(JSON.stringify(student.attendanceRecord)) : [];
+      let subIndex = currentRecords.findIndex(r => r.subject === schedule.subject);
+
+      let subRec;
+      if (subIndex === -1) {
+        subRec = { subject: schedule.subject, totalClasses: 0, presentClasses: 0, percentage: 0 };
+        currentRecords.push(subRec);
+        subIndex = currentRecords.length - 1;
+      } else {
+        subRec = currentRecords[subIndex];
+      }
+
+      if (!isUpdate || subRec.totalClasses === 0) {
+        subRec.totalClasses += classWeight;
+        if (!isNowAbsent) subRec.presentClasses += classWeight;
+      } else {
+        const wasAbsent = oldAbsentIds.includes(studentIdStr);
+        if (wasAbsent && !isNowAbsent) {
+          subRec.presentClasses += classWeight;
+        } else if (!wasAbsent && isNowAbsent) {
+          subRec.presentClasses -= classWeight;
+        }
+      }
+
+      subRec.percentage = subRec.totalClasses > 0 ? (subRec.presentClasses / subRec.totalClasses) * 100 : 100;
+      currentRecords[subIndex] = subRec;
+
+      const globalTotal = currentRecords.reduce((acc, curr) => acc + (Number(curr.totalClasses) || 0), 0);
+      const globalPresent = currentRecords.reduce((acc, curr) => acc + (Number(curr.presentClasses) || 0), 0);
+
+      const attendanceSummary = {
+        totalClasses: globalTotal,
+        presentClasses: globalPresent,
+        percentage: globalTotal > 0 ? (globalPresent / globalTotal) * 100 : 100
+      };
+
+      return {
+        updateOne: {
+          filter: { _id: student._id },
+          update: {
+            $set: {
+              attendanceRecord: currentRecords,
+              attendanceSummary: attendanceSummary
+            }
+          }
+        }
+      };
+    }).filter(Boolean);
+
+    if (bulkOps.length > 0) {
+      await Student.bulkWrite(bulkOps);
+    }
+
+    const presentCount = attendanceData.filter(a => a.status === "Present").length;
+    const absentCount = attendanceData.filter(a => a.status === "Absent").length;
+
+    // 📝 Log Neural Attendance Action
+    await logAction({
+      actionType: 'AI_AUTO_ATTENDANCE',
+      title: 'Neural Face Attendance Logged',
+      message: `VisOra Engine verified ${presentCount}/${students.length} students present for ${schedule.subject} (${schedule.branch} ${schedule.year}-${schedule.section || schedule.batch})`,
+      actor: { userId: facultyId, role: 'Faculty' },
+      metadata: {
+        classId,
+        date: attendanceDate,
+        presentCount,
+        absentCount,
+        totalStudents: students.length,
+        patentRef: "202641036876",
+        telemetry: telemetrySummary || {}
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: `AI Neural Attendance recorded: ${presentCount} Present, ${absentCount} Absent.`,
+      stats: {
+        totalStudents: students.length,
+        presentCount,
+        absentCount,
+        attendanceDate
+      },
+      presentStudents: attendanceData.filter(a => a.status === "Present"),
+      absentStudents: attendanceData.filter(a => a.status === "Absent")
+    });
+
+  } catch (error) {
+    console.error("[markNeuralAttendance] Error:", error);
+    res.status(500).json({ success: false, message: error.message || "Failed to mark neural attendance" });
+  }
+};
+
+export const getNeuralEngineStatus = async (req, res) => {
+  try {
+    const health = await neuralService.checkHealth();
+    return res.json({
+      success: true,
+      ...health
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, online: false, message: error.message });
+  }
+};
