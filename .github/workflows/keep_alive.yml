@@ -21,9 +21,9 @@ jobs:
 
       - name: Ping Python Neural AI Engine
         run: |
-          if [ -n "${{ secrets.RENDER_ENGINE_URL }}" ]; then
-            echo "Pinging Neural Engine: ${{ secrets.RENDER_ENGINE_URL }}/health"
-            curl -s -f -m 25 "${{ secrets.RENDER_ENGINE_URL }}/health" || echo "Engine ping failed or waking up"
-          else
-            echo "RENDER_ENGINE_URL secret not set. Skipping engine ping."
+          ENGINE_URL="${{ secrets.RENDER_ENGINE_URL }}"
+          if [ -z "$ENGINE_URL" ]; then
+            ENGINE_URL="https://visora-engine.onrender.com"
           fi
+          echo "Pinging Neural Engine: $ENGINE_URL/health"
+          curl -s -f -m 25 "$ENGINE_URL/health" || echo "Engine ping failed or waking up"
