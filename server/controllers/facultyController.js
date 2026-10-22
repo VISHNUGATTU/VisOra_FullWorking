@@ -2,6 +2,7 @@ import Faculty from "../models/Faculty.js";
 import Student from "../models/Student.js";
 import FacultySchedule from "../models/FacultySchedule.js"; 
 import Attendance from "../models/Attendance.js";
+import Notification from "../models/Notification.js";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -822,16 +823,6 @@ export const searchFaculty = async (req, res) => {
 
 
 
-const timeToMinutes = (timeStr) => {
-  if (!timeStr) return 0;
-  const [time, modifier] = timeStr.split(" ");
-  let [hours, minutes] = time.split(":").map(Number);
-  if (hours === 12) hours = 0;
-  if (modifier === "PM") hours += 12;
-  return hours * 60 + minutes;
-};
-
-
 
 
 /* ===============================================================
@@ -919,15 +910,17 @@ export const getSectionAnalytics = async (req, res) => {
     const { year, branch, section, subject } = req.query;
     if (!year || !branch || !subject) return res.status(400).json({ success: false, message: "Params required" });
 
-    const students = await Student.find({
-  year: Number(year),
-  branch: { $regex: new RegExp(`^${branch}$`, "i") },
-  section: { $regex: new RegExp(`^${section}$`, "i") },
-  // Optional: Only fetch students who actually have a record for this subject
-  "attendanceRecord.subject": { $regex: new RegExp(`^${subject}$`, "i") } 
-}).select("name rollno mail phno attendanceRecord");
+    const studentQuery = {
+      year: Number(year),
+      branch: { $regex: new RegExp(`^${branch}$`, "i") }
+    };
+    if (section && section !== 'ALL') {
+      studentQuery.section = { $regex: new RegExp(`^${section}$`, "i") };
+    }
 
-const analytics = students.map(student => {
+    const students = await Student.find(studentQuery).select("name rollno mail phno attendanceRecord branch year section");
+
+    const analytics = students.map(student => {
   // 🔥 FIX: Ensure we find the subject record case-insensitively
   const subRecord = student.attendanceRecord.find(
     r => r.subject.trim().toLowerCase() === subject.trim().toLowerCase()
@@ -1649,6 +1642,158 @@ export const triggerEODFinalization = async (req, res) => {
     });
   } catch (error) {
     console.error("[triggerEODFinalization] Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* ===============================================================
+   RESOLVE ATTENDANCE DISPUTE (Phase 4: Faculty Resolution Inbox)
+=============================================================== */
+export const resolveDispute = async (req, res) => {
+  try {
+    const facultyId = req.userId;
+    const { notificationId, attendanceId, studentId, decision, remarks } = req.body;
+
+    if (!attendanceId || !studentId || !decision) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Missing required parameters: attendanceId, studentId, and decision (APPROVE/REJECT)." 
+      });
+    }
+
+    if (!['APPROVE', 'REJECT'].includes(decision)) {
+      return res.status(400).json({ success: false, message: "Decision must be APPROVE or REJECT." });
+    }
+
+    const attendance = await Attendance.findById(attendanceId);
+    if (!attendance) {
+      return res.status(404).json({ success: false, message: "Attendance record not found." });
+    }
+
+    const faculty = await Faculty.findById(facultyId).select("name mail department");
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student record not found." });
+    }
+
+    if (decision === 'APPROVE') {
+      // 1. Remove student from absentees in the attendance document
+      await Attendance.findByIdAndUpdate(attendanceId, {
+        $pull: { absentees: student._id }
+      });
+
+      // 2. Adjust student cumulative attendanceRecord and summary
+      if (attendance.subject && Array.isArray(student.attendanceRecord)) {
+        const subIndex = student.attendanceRecord.findIndex(
+          r => r.subject?.trim().toLowerCase() === attendance.subject?.trim().toLowerCase()
+        );
+        if (subIndex !== -1) {
+          student.attendanceRecord[subIndex].presentClasses = Math.min(
+            student.attendanceRecord[subIndex].totalClasses,
+            (student.attendanceRecord[subIndex].presentClasses || 0) + 1
+          );
+          const subTotal = student.attendanceRecord[subIndex].totalClasses || 1;
+          student.attendanceRecord[subIndex].percentage = Number(
+            ((student.attendanceRecord[subIndex].presentClasses / subTotal) * 100).toFixed(1)
+          );
+        }
+
+        const grandTotal = student.attendanceRecord.reduce((acc, r) => acc + (r.totalClasses || 0), 0);
+        const grandPresent = student.attendanceRecord.reduce((acc, r) => acc + (r.presentClasses || 0), 0);
+        if (grandTotal > 0) {
+          student.attendanceSummary = student.attendanceSummary || {};
+          student.attendanceSummary.totalClasses = grandTotal;
+          student.attendanceSummary.attendedClasses = grandPresent;
+          student.attendanceSummary.percentage = Number(((grandPresent / grandTotal) * 100).toFixed(1));
+        }
+
+        await student.save();
+      }
+
+      // 3. Notify student of approval
+      await Notification.create({
+        title: "Attendance Dispute Approved",
+        message: `Your dispute for "${attendance.subject || 'Lecture'}" on ${new Date(attendance.date).toLocaleDateString()} was APPROVED by Prof. ${faculty?.name || 'Faculty'}. Your attendance has been updated to Present.`,
+        type: "Success",
+        sender: {
+          id: facultyId,
+          role: "Faculty",
+          name: faculty?.name || "Faculty"
+        },
+        recipient: {
+          userId: String(student._id),
+          role: "Student"
+        },
+        metadata: {
+          attendanceId: attendance._id,
+          status: "APPROVED",
+          resolvedAt: new Date()
+        }
+      });
+
+      // 4. Audit Log
+      await logAction({
+        actionType: "RESOLVE_DISPUTE",
+        title: "Dispute Approved",
+        message: `Prof. ${faculty?.name || 'Faculty'} approved attendance dispute for ${student.name} (${student.rollno}) in ${attendance.subject}`,
+        actor: { userId: facultyId, role: "Faculty", name: faculty?.name },
+        metadata: { attendanceId, studentId: student._id, decision: 'APPROVE' },
+        status: "Success"
+      });
+
+    } else {
+      // REJECT decision
+      await Notification.create({
+        title: "Attendance Dispute Rejected",
+        message: `Your dispute for "${attendance.subject || 'Lecture'}" on ${new Date(attendance.date).toLocaleDateString()} was reviewed and REJECTED by Prof. ${faculty?.name || 'Faculty'}. Remarks: "${remarks || 'Absence verified from session logs.'}"`,
+        type: "Warning",
+        sender: {
+          id: facultyId,
+          role: "Faculty",
+          name: faculty?.name || "Faculty"
+        },
+        recipient: {
+          userId: String(student._id),
+          role: "Student"
+        },
+        metadata: {
+          attendanceId: attendance._id,
+          status: "REJECTED",
+          resolvedAt: new Date(),
+          remarks: remarks || ""
+        }
+      });
+
+      await logAction({
+        actionType: "REJECT_DISPUTE",
+        title: "Dispute Rejected",
+        message: `Prof. ${faculty?.name || 'Faculty'} rejected attendance dispute for ${student.name} (${student.rollno}) in ${attendance.subject}`,
+        actor: { userId: facultyId, role: "Faculty", name: faculty?.name },
+        metadata: { attendanceId, studentId: student._id, decision: 'REJECT', remarks },
+        status: "Warning"
+      });
+    }
+
+    // 5. Update the original notification
+    if (notificationId) {
+      await Notification.findByIdAndUpdate(notificationId, {
+        isRead: true,
+        readAt: new Date(),
+        'metadata.status': decision === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+        'metadata.resolvedAt': new Date(),
+        'metadata.resolvedBy': faculty?.name || 'Faculty'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: decision === 'APPROVE' 
+        ? "Dispute approved! Student attendance updated to Present." 
+        : "Dispute rejected. Student remains Absent.",
+      decision
+    });
+  } catch (error) {
+    console.error("[resolveDispute] Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -27,7 +27,8 @@ import {
   getSessionPresenceBreakdown,
   getNeuralConsolidatedAttendance,
   sendTelegramAttendanceReport,
-  triggerEODFinalization
+  triggerEODFinalization,
+  resolveDispute
 } from "../controllers/facultyController.js";
 
 import { facultyAuth } from "../middlewares/authFaculty.js";
@@ -66,5 +67,6 @@ facultyRouter.get('/session-presence/:sessionId', facultyAuth, getSessionPresenc
 facultyRouter.get('/neural-consolidated-attendance', facultyAuth, getNeuralConsolidatedAttendance);
 facultyRouter.post('/send-telegram-report', facultyAuth, sendTelegramAttendanceReport);
 facultyRouter.post('/eod-finalize', facultyAuth, triggerEODFinalization);
+facultyRouter.post('/resolve-dispute', facultyAuth, resolveDispute);
 
 export default facultyRouter;

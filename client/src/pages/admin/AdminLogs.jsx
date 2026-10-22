@@ -1,11 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Trash2, RefreshCw, AlertTriangle, CheckCircle, XCircle, X, Cpu } from 'lucide-react';
+import { useAppContext } from '../../context/AppContext';
+import { 
+  Trash2, RefreshCw, AlertTriangle, CheckCircle, 
+  XCircle, X, Cpu, Download, Search, Filter 
+} from 'lucide-react';
 
 const AdminLogs = () => {
+  const { axios } = useAppContext();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // --- FILTER STATES ---
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [actionFilter, setActionFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // --- MODAL STATES ---
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -15,22 +25,32 @@ const AdminLogs = () => {
   // --- FETCH LOGS ---
   const fetchLogs = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const res = await axios.get('/api/logs/admin');
+      const params = {};
+      if (roleFilter !== 'all') params.role = roleFilter;
+      if (actionFilter !== 'all') params.actionType = actionFilter;
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+
+      const res = await axios.get('/api/logs/admin', { params });
       if (res.data.success) {
         setLogs(res.data.data);
       }
     } catch (err) {
       console.error("Error fetching logs:", err);
-      setError("Failed to load logs.");
+      setError("Failed to load activity logs.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchLogs();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchLogs();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [roleFilter, actionFilter, statusFilter, searchQuery]);
 
   // --- DELETE HANDLERS ---
   
@@ -69,6 +89,50 @@ const AdminLogs = () => {
     }
   };
 
+  // 4. Export Logs to CSV
+  const handleExportLogsCSV = () => {
+    if (logs.length === 0) return alert("No logs available to export.");
+
+    const headers = [
+      "Timestamp",
+      "Action Type",
+      "Actor Name",
+      "Actor Role",
+      "Title",
+      "Message",
+      "Status",
+      "IP Address"
+    ];
+
+    const rows = logs.map(l => [
+      new Date(l.createdAt).toISOString(),
+      l.actionType || '',
+      l.actor?.name || 'Unknown',
+      l.actor?.role || '',
+      l.title || '',
+      l.message || '',
+      l.status || '',
+      l.actor?.ipAddress || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => 
+        row.map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(',')
+      )
+    ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `VisOra_Audit_Logs_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Helper for Status Badge
   const getStatusBadge = (status) => {
     switch (status) {
@@ -87,22 +151,111 @@ const AdminLogs = () => {
     <div className="p-6 bg-gray-50 min-h-screen relative">
       
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Admin Activity Logs</h1>
-        <div className="space-x-2 flex">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">System Activity & Audit Logs</h1>
+          <p className="text-sm text-gray-500">Live operational ledger, authentication attempts and dispute resolutions</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            onClick={handleExportLogsCSV} 
+            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition flex items-center shadow-sm text-sm font-medium"
+            title="Download CSV"
+          >
+            <Download size={16} className="mr-2 text-blue-600" /> Export CSV
+          </button>
           <button 
             onClick={fetchLogs} 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center shadow-sm"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center shadow-sm text-sm font-medium"
           >
-            <RefreshCw size={18} className="mr-2" /> Refresh
+            <RefreshCw size={16} className="mr-2" /> Refresh
           </button>
           
           {logs.length > 0 && (
             <button 
               onClick={() => setShowClearAllModal(true)} 
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center shadow-sm"
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center shadow-sm text-sm font-medium"
             >
-              <Trash2 size={18} className="mr-2" /> Clear All
+              <Trash2 size={16} className="mr-2" /> Clear All
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* FILTER & SEARCH TOOLBAR */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Search Input */}
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search keywords, actors..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+          />
+        </div>
+
+        {/* Role Filter */}
+        <div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+          >
+            <option value="all">All Roles</option>
+            <option value="Admin">Admin</option>
+            <option value="Faculty">Faculty</option>
+            <option value="Student">Student</option>
+            <option value="System">System / Engine</option>
+          </select>
+        </div>
+
+        {/* Action Type Filter */}
+        <div>
+          <select
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+          >
+            <option value="all">All Action Types</option>
+            <option value="LOGIN">LOGIN</option>
+            <option value="AUTH_FAILURE">AUTH_FAILURE</option>
+            <option value="ATTENDANCE_DISPUTE">ATTENDANCE_DISPUTE</option>
+            <option value="RESOLVE_DISPUTE">RESOLVE_DISPUTE</option>
+            <option value="REJECT_DISPUTE">REJECT_DISPUTE</option>
+            <option value="MARK_ATTENDANCE">MARK_ATTENDANCE</option>
+            <option value="ADD_SCHEDULE">ADD_SCHEDULE</option>
+            <option value="CREATE_USER">CREATE_USER</option>
+            <option value="NEURAL_ATTENDANCE_COMMITTED">NEURAL_ATTENDANCE_COMMITTED</option>
+          </select>
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+          >
+            <option value="all">All Statuses</option>
+            <option value="Success">Success</option>
+            <option value="Warning">Warning</option>
+            <option value="Failed">Failed</option>
+          </select>
+
+          {(roleFilter !== 'all' || actionFilter !== 'all' || statusFilter !== 'all' || searchQuery) && (
+            <button
+              onClick={() => {
+                setRoleFilter('all');
+                setActionFilter('all');
+                setStatusFilter('all');
+                setSearchQuery('');
+              }}
+              className="px-3 py-2 text-xs font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-lg transition whitespace-nowrap"
+              title="Reset all filters"
+            >
+              Reset
             </button>
           )}
         </div>

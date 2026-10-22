@@ -618,3 +618,72 @@ export const getComprehensiveAnalytics = async (req, res) => {
     res.status(500).json({ message: "Failed to load analytics data", error: error.message });
   }
 };
+
+/* ===============================================================
+   GET INSTITUTIONAL ATTENDANCE EXPORT DATA (Phase 4)
+=============================================================== */
+export const getExportData = async (req, res) => {
+  try {
+    const { branch, year, section, defaultersOnly } = req.query;
+    const query = {};
+
+    if (branch && branch !== 'ALL') {
+      query.branch = { $regex: new RegExp(`^${branch}$`, 'i') };
+    }
+    if (year && year !== 'ALL') {
+      query.year = Number(year);
+    }
+    if (section && section !== 'ALL') {
+      query.section = { $regex: new RegExp(`^${section}$`, 'i') };
+    }
+    if (defaultersOnly === 'true' || defaultersOnly === true) {
+      query['attendanceSummary.percentage'] = { $lt: 75 };
+    }
+
+    const students = await Student.find(query)
+      .select("name rollno mail phno branch year section attendanceSummary attendanceRecord biometricEnrolled")
+      .sort({ branch: 1, year: 1, section: 1, rollno: 1 });
+
+    const formatted = students.map(s => {
+      const percentage = s.attendanceSummary?.percentage ?? (
+        s.attendanceRecord?.length > 0 
+          ? (s.attendanceRecord.reduce((acc, r) => acc + (r.presentClasses || 0), 0) / 
+             Math.max(1, s.attendanceRecord.reduce((acc, r) => acc + (r.totalClasses || 0), 0))) * 100
+          : 0
+      );
+
+      const totalClasses = s.attendanceSummary?.totalClasses ?? (
+        s.attendanceRecord?.reduce((acc, r) => acc + (r.totalClasses || 0), 0) || 0
+      );
+
+      const attendedClasses = s.attendanceSummary?.attendedClasses ?? (
+        s.attendanceRecord?.reduce((acc, r) => acc + (r.presentClasses || 0), 0) || 0
+      );
+
+      return {
+        id: s._id,
+        rollno: s.rollno,
+        name: s.name,
+        branch: s.branch,
+        year: s.year,
+        section: s.section,
+        mail: s.mail,
+        phno: s.phno,
+        totalClasses,
+        attendedClasses,
+        percentage: Number(percentage.toFixed(1)),
+        status: percentage < 75 ? "Defaulter (<75%)" : "Eligible",
+        biometricEnrolled: Boolean(s.biometricEnrolled)
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      count: formatted.length,
+      data: formatted
+    });
+  } catch (error) {
+    console.error("[getExportData] Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

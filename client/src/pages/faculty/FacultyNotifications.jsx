@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Bell, CheckCheck, Trash2, Plus, 
-  Info, AlertTriangle, CheckCircle, X, Send, Search, Inbox, CheckSquare
+  Info, AlertTriangle, CheckCircle, X, Send, Search, Inbox, CheckSquare,
+  ShieldAlert, Check, XCircle, Scale
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext'; 
 import { toast } from 'react-hot-toast';
@@ -19,6 +20,8 @@ const FacultyNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('inbox'); 
+  const [inboxFilter, setInboxFilter] = useState('all'); // 'all' or 'disputes'
+  const [resolvingId, setResolvingId] = useState(null);
   
   // --- MODAL & SEARCH STATES ---
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -170,6 +173,48 @@ const FacultyNotifications = () => {
     }
   };
 
+  // ✅ PHASE 4: Handle Attendance Dispute Resolution
+  const handleResolveDispute = async (notif, decision) => {
+    if (!notif?.metadata?.attendanceId || !notif?.metadata?.studentId) {
+      return toast.error("Missing dispute metadata in this record.");
+    }
+
+    setResolvingId(notif._id);
+    const loadingToast = toast.loading(decision === 'APPROVE' ? "Approving dispute & marking Present..." : "Rejecting dispute...");
+    try {
+      const res = await axios.post('/api/faculty/resolve-dispute', {
+        notificationId: notif._id,
+        attendanceId: notif.metadata.attendanceId,
+        studentId: notif.metadata.studentId,
+        decision
+      });
+
+      if (res.data.success) {
+        toast.success(res.data.message, { id: loadingToast });
+        setNotifications(prev =>
+          prev.map(n =>
+            n._id === notif._id
+              ? {
+                  ...n,
+                  isRead: true,
+                  metadata: {
+                    ...n.metadata,
+                    status: decision === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+                    resolvedAt: new Date()
+                  }
+                }
+              : n
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Dispute error:", err);
+      toast.error(err.response?.data?.message || "Failed to resolve dispute", { id: loadingToast });
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
   const getTypeIcon = (type) => {
     switch (type) {
       case 'Warning': return <AlertTriangle className="text-amber-500" size={20} />;
@@ -213,7 +258,7 @@ const FacultyNotifications = () => {
         <div className="border-b border-gray-200 mb-6">
           <nav className="-mb-px flex space-x-8">
             <button 
-              onClick={() => setActiveTab('inbox')} 
+              onClick={() => { setActiveTab('inbox'); setInboxFilter('all'); }} 
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'inbox' 
                   ? 'border-blue-500 text-blue-600' 
@@ -235,21 +280,62 @@ const FacultyNotifications = () => {
           </nav>
         </div>
 
+        {/* INBOX SUB-FILTER (ALL vs DISPUTES) */}
+        {activeTab === 'inbox' && !loading && (
+          <div className="flex items-center gap-2 mb-6">
+            <button
+              onClick={() => setInboxFilter('all')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                inboxFilter === 'all' 
+                  ? 'bg-blue-600 text-white shadow-sm' 
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              All Notifications ({notifications.length})
+            </button>
+            <button
+              onClick={() => setInboxFilter('disputes')}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                inboxFilter === 'disputes' 
+                  ? 'bg-amber-600 text-white shadow-sm' 
+                  : 'bg-white text-amber-800 border border-amber-200 hover:bg-amber-50'
+              }`}
+            >
+              <Scale size={13} /> Attendance Disputes ({
+                notifications.filter(n => Boolean(n.metadata?.attendanceId || n.title?.includes("Attendance Dispute"))).length
+              })
+            </button>
+          </div>
+        )}
+
         {/* CONTENT LIST */}
         {loading ? (
           <div className="text-center py-20">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
             <p className="mt-4 text-sm text-gray-500 font-medium">Loading messages...</p>
           </div>
-        ) : notifications.length === 0 ? (
+        ) : notifications.length === 0 || (activeTab === 'inbox' && inboxFilter === 'disputes' && notifications.filter(n => Boolean(n.metadata?.attendanceId || n.title?.includes("Attendance Dispute"))).length === 0) ? (
           <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300 shadow-sm">
             <Inbox size={48} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-sm font-semibold text-gray-900">No messages</h3>
-            <p className="text-sm text-gray-500 mt-1">Your {activeTab} is currently empty.</p>
+            <h3 className="text-sm font-semibold text-gray-900">
+              {inboxFilter === 'disputes' ? "No Attendance Disputes" : "No messages"}
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {inboxFilter === 'disputes' 
+                ? "No students have submitted disputes for your classes." 
+                : `Your ${activeTab} is currently empty.`}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {notifications.map((notif) => {
+            {notifications
+              .filter(notif => {
+                if (activeTab === 'inbox' && inboxFilter === 'disputes') {
+                  return Boolean(notif.metadata?.attendanceId || notif.title?.includes("Attendance Dispute"));
+                }
+                return true;
+              })
+              .map((notif) => {
               const title = notif.title;
               const message = notif.message;
               const date = notif.createdAt || notif.when;
@@ -257,6 +343,7 @@ const FacultyNotifications = () => {
               const senderName = notif.sender?.name || notif.byWhom?.name || "System";
               const targetRole = notif.recipient?.role || notif.toWhom?.role;
               const targetId = notif.recipient?.userId || notif.toWhom?.userId;
+              const isDispute = Boolean(notif.metadata?.attendanceId || notif.title?.includes("Attendance Dispute"));
 
               // Only allow delete if this user is the sender (for Outbox)
               const canDelete = activeTab === 'sent' && notif.senderId === user._id;
@@ -267,10 +354,11 @@ const FacultyNotifications = () => {
                   {/* Icon */}
                   <div className="flex-shrink-0 mt-1">
                     <div className={`p-2.5 rounded-full ${
+                      isDispute ? 'bg-amber-100 text-amber-700' :
                       notif.type === 'Warning' ? 'bg-amber-50' : 
                       notif.type === 'Success' ? 'bg-emerald-50' : 'bg-blue-50'
                     }`}>
-                      {getTypeIcon(notif.type)}
+                      {isDispute ? <Scale size={20} /> : getTypeIcon(notif.type)}
                     </div>
                   </div>
 
@@ -283,9 +371,64 @@ const FacultyNotifications = () => {
                           New
                         </span>
                       )}
+                      {isDispute && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-700/20">
+                          Dispute Claim
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600 mb-3">{message}</p>
                     
+                    {/* DISPUTE RESOLUTION ACCORDION/BOX */}
+                    {isDispute && (
+                      <div className="my-3 p-3.5 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                            <Scale size={14} className="text-amber-600" /> Attendance Dispute Review
+                          </span>
+                          {notif.metadata?.status === 'APPROVED' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              <CheckCircle size={13} /> Approved (Marked Present)
+                            </span>
+                          ) : notif.metadata?.status === 'REJECTED' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                              <XCircle size={13} /> Rejected (Remains Absent)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-200 text-amber-900">
+                              Pending Action
+                            </span>
+                          )}
+                        </div>
+
+                        {notif.metadata?.reason && (
+                          <div className="text-xs text-amber-950 font-medium bg-white/80 p-2.5 rounded-lg border border-amber-100">
+                            <span className="font-bold text-amber-900 block mb-0.5">Student's Stated Reason:</span>
+                            "{notif.metadata.reason}"
+                          </div>
+                        )}
+
+                        {(!notif.metadata?.status || notif.metadata.status === 'PENDING') && activeTab === 'inbox' && (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <button
+                              disabled={resolvingId === notif._id}
+                              onClick={() => handleResolveDispute(notif, 'APPROVE')}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition shadow-sm disabled:opacity-50"
+                            >
+                              <Check size={14} /> Approve & Mark Present
+                            </button>
+                            <button
+                              disabled={resolvingId === notif._id}
+                              onClick={() => handleResolveDispute(notif, 'REJECT')}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-rose-300 text-rose-700 rounded-lg text-xs font-bold hover:bg-rose-50 transition shadow-sm disabled:opacity-50"
+                            >
+                              <X size={14} /> Reject Dispute
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <span>
                         {activeTab === 'inbox' ? (

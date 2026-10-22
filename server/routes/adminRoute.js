@@ -11,7 +11,8 @@ import {
   getSystemHealth,
   getFacultyCount,
   getStudentStats,
-  getComprehensiveAnalytics
+  getComprehensiveAnalytics,
+  getExportData
 } from "../controllers/adminController.js";
 import authAdmin  from "../middlewares/authAdmin.js";
 import { authRateLimiter } from "../middlewares/rateLimiter.js";
@@ -33,6 +34,6 @@ adminRouter.get('/health',authAdmin,getSystemHealth);
 adminRouter.get('/count',authAdmin, getFacultyCount);
 adminRouter.get('/student-stats',authAdmin, getStudentStats);
 adminRouter.get('/analytics/comprehensive', authAdmin, getComprehensiveAnalytics);
-
+adminRouter.get('/export-attendance', authAdmin, getExportData);
 
 export default adminRouter;

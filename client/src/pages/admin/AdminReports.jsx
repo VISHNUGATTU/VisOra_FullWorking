@@ -23,6 +23,12 @@ const AdminReports = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState(null);
 
+  // CSV Export States
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportBranch, setExportBranch] = useState('ALL');
+  const [exportYear, setExportYear] = useState('ALL');
+  const [exportDefaultersOnly, setExportDefaultersOnly] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [uploadMode, setUploadMode] = useState('device'); 
   const [formData, setFormData] = useState({
     title: '',
@@ -131,6 +137,86 @@ const fetchReports = async () => {
     }
   };
 
+  // --- INSTITUTIONAL CSV EXPORT ---
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    const loadingToast = toast.loading("Generating Institutional Attendance CSV...");
+    try {
+      const res = await axios.get('/api/admin/export-attendance', {
+        params: {
+          branch: exportBranch,
+          year: exportYear,
+          defaultersOnly: exportDefaultersOnly
+        }
+      });
+
+      if (!res.data.success || !res.data.data) {
+        throw new Error(res.data.message || "Failed to fetch student data");
+      }
+
+      const students = res.data.data;
+      if (students.length === 0) {
+        toast.dismiss(loadingToast);
+        return toast.error("No student records match the selected filters.");
+      }
+
+      const headers = [
+        "Roll Number",
+        "Student Name",
+        "Branch",
+        "Year",
+        "Section",
+        "Email",
+        "Phone",
+        "Classes Attended",
+        "Total Classes",
+        "Attendance Percentage",
+        "Eligibility Status",
+        "Biometric Enrolled"
+      ];
+
+      const rows = students.map(s => [
+        s.rollno,
+        s.name,
+        s.branch,
+        s.year,
+        s.section,
+        s.mail,
+        s.phno,
+        s.attendedClasses,
+        s.totalClasses,
+        `${s.percentage}%`,
+        s.status,
+        s.biometricEnrolled ? "Yes (ArcFace 512D)" : "No"
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => 
+          row.map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(',')
+        )
+      ].join('\r\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const filename = `VisOra_Institutional_Attendance_${exportBranch}_Y${exportYear}_${exportDefaultersOnly ? 'Defaulters' : 'Full'}_${new Date().toISOString().slice(0,10)}.csv`;
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${students.length} student records!`, { id: loadingToast });
+      setShowExportModal(false);
+    } catch (err) {
+      toast.error(err.message || "Export failed", { id: loadingToast });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen relative">
       {/* HEADER */}
@@ -139,10 +225,22 @@ const fetchReports = async () => {
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <FileText className="text-blue-600" /> Reports Center
           </h1>
+          <p className="text-sm text-gray-500">Institutional records repository & attendance export engine</p>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition">
-          <Plus size={18} /> New Report
-        </button>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <button 
+            onClick={() => setShowExportModal(true)} 
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 shadow-sm transition font-medium text-sm"
+          >
+            <Download size={17} className="text-blue-600" /> Export Institutional CSV
+          </button>
+          <button 
+            onClick={() => setShowCreateModal(true)} 
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition font-medium text-sm"
+          >
+            <Plus size={17} /> New Report
+          </button>
+        </div>
       </div>
 
       {/* TABS - Updated to Received / Sent */}
@@ -275,6 +373,130 @@ const fetchReports = async () => {
             <div className="flex justify-end gap-3">
               <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition">Cancel</button>
               <button onClick={confirmDelete} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">Yes, Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INSTITUTIONAL CSV EXPORT MODAL */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                  <Download size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Institutional Attendance Export</h3>
+                  <p className="text-xs text-gray-500">Download system-wide attendance registers (CSV)</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowExportModal(false)} 
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Branch / Department */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Branch / Dept
+                  </label>
+                  <select
+                    value={exportBranch}
+                    onChange={(e) => setExportBranch(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="ALL">All Departments</option>
+                    <option value="CSE">CSE</option>
+                    <option value="ECE">ECE</option>
+                    <option value="MECH">MECH</option>
+                    <option value="CIVIL">CIVIL</option>
+                    <option value="IT">IT</option>
+                    <option value="EEE">EEE</option>
+                  </select>
+                </div>
+
+                {/* Academic Year */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Academic Year
+                  </label>
+                  <select
+                    value={exportYear}
+                    onChange={(e) => setExportYear(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="ALL">All Years (1-4)</option>
+                    <option value="1">Year 1</option>
+                    <option value="2">Year 2</option>
+                    <option value="3">Year 3</option>
+                    <option value="4">Year 4</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Scope filter */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Filter Roster
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setExportDefaultersOnly(false)}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition border ${
+                      !exportDefaultersOnly
+                        ? 'bg-blue-50 border-blue-500 text-blue-700'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    Full Cohort Roster
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExportDefaultersOnly(true)}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition border ${
+                      exportDefaultersOnly
+                        ? 'bg-amber-50 border-amber-500 text-amber-800'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    Defaulters Only (&lt;75%)
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 text-xs text-blue-800 space-y-1">
+                <span className="font-bold block">Included in export:</span>
+                <p className="text-[11px] leading-relaxed text-blue-700">
+                  Roll Number, Full Name, Cohort (Branch, Year, Section), Contact Details, Classes Attended, Total Sessions, Overall Percentage, Academic Eligibility, and Neural Biometric Enrollment status.
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowExportModal(false)}
+                  className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-semibold text-sm rounded-xl hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isExporting}
+                  onClick={handleExportCSV}
+                  className="flex-1 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-xl hover:bg-blue-700 shadow-md shadow-blue-200 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <Download size={16} /> {isExporting ? "Exporting..." : "Download CSV"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
