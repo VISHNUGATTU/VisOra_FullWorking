@@ -177,6 +177,47 @@ cd client && npm run build
 
 ---
 
+## 🚀 Production Deployment Guide
+
+VisOra is engineered for high-availability production deployment across Docker, PM2, or Bare-Metal infrastructure.
+
+### Option 1: Docker Compose (Recommended for Cloud & Kubernetes)
+Orchestrates all 3 microservices with isolated networks, volume persistence for FAISS indexes, and container health checks.
+```bash
+# Build and start all services in detached production mode
+docker compose -f docker-compose.prod.yml up --build -d
+
+# Verify container health status
+docker compose -f docker-compose.prod.yml ps
+```
+
+### Option 2: PM2 Process Manager (Recommended for Dedicated Linux / Windows Servers)
+Uses cluster mode for the Node.js API and managed process supervision for the Python Neural Engine.
+```bash
+# Start all microservices in PM2
+pm2 start ecosystem.config.cjs
+
+# Monitor logs and process resource utilization
+pm2 monit
+pm2 logs
+```
+
+### Option 3: Native Production Scripts (On-Prem / Local Cluster)
+```powershell
+# Windows PowerShell
+.\start_production.ps1
+
+# Windows Batch
+start_production.bat
+```
+
+### 🩺 Production Health & Monitoring Probes
+- **Python Neural Core:** `GET http://localhost:8000/health` and `GET http://localhost:8000/ready`
+- **Node.js Express API:** `GET http://localhost:6446/health` and `GET http://localhost:6446/ready`
+- **React Frontend:** `GET http://localhost:80/health`
+
+---
+
 ## 👥 Inventors & Institutional Attribution
 
 - **Institution:** VNR Vignana Jyothi Institute of Engineering and Technology (VNRVJIET), Hyderabad, Telangana, India.

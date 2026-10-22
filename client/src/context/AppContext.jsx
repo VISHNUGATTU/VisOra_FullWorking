@@ -7,7 +7,13 @@ export const AppContext = createContext();
 
 // ✅ Global Config
 axios.defaults.withCredentials = true;
-const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const backendUrl =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "http://localhost:6446"
+    : typeof window !== "undefined"
+    ? window.location.origin
+    : "http://localhost:6446");
 axios.defaults.baseURL = backendUrl;
 
 export const AppContextProvider = ({ children }) => {

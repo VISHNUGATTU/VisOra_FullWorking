@@ -1,0 +1,73 @@
+services:
+  # 1. Neural Identity Engine (InsightFace + FAISS + rPPG + APScheduler)
+  visora-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.engine
+    container_name: visora-engine
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - VISORA_ENGINE_HOST=0.0.0.0
+      - VISORA_ENGINE_PORT=8000
+      - VISORA_MODEL_NAME=buffalo_s
+      - DETECTION_THRESHOLD=0.50
+      - COSINE_THRESHOLD=0.38
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://localhost:6446
+    volumes:
+      - visora_faiss_data:/app/engine/data/index
+      - visora_engine_cache:/app/engine/data/cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # 2. Node.js Express Core Backend
+  visora-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: visora-server
+    restart: unless-stopped
+    ports:
+      - "6446:6446"
+    environment:
+      - NODE_ENV=production
+      - PORT=6446
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET:-visora_super_secret_jwt_key_2026}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+      - NEURAL_ENGINE_URL=http://visora-engine:8000
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    depends_on:
+      visora-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:6446/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # 3. React Frontend Client (Nginx Alpine)
+  visora-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: visora-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      visora-server:
+        condition: service_healthy
+
+volumes:
+  visora_faiss_data:
+    name: visora_faiss_data
+  visora_engine_cache:
+    name: visora_engine_cache

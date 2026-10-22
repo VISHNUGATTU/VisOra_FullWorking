@@ -23,7 +23,11 @@ import {
   ChevronRight
 } from "lucide-react";
 
-const NEURAL_ENGINE_URL = import.meta.env.VITE_NEURAL_ENGINE_URL || "http://localhost:8000";
+const NEURAL_ENGINE_URL =
+  import.meta.env.VITE_NEURAL_ENGINE_URL ||
+  (typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "http://localhost:8000"
+    : "/engine");
 
 const NeuralAttendanceScanner = () => {
   // --- States ---
