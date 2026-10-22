@@ -34,10 +34,11 @@ import { facultyAuth } from "../middlewares/authFaculty.js";
 import {studentAuth} from "../middlewares/authStudent.js"
 import  authAdmin  from "../middlewares/authAdmin.js";
 import {upload} from "../configs/multer.js";
+import { authRateLimiter } from "../middlewares/rateLimiter.js";
 
 const facultyRouter = express.Router();
 
-facultyRouter.post("/login", loginFaculty);
+facultyRouter.post("/login", authRateLimiter, loginFaculty);
 facultyRouter.get("/is-auth", facultyAuth, isFacultyAuth);
 facultyRouter.post("/logout", facultyAuth, logoutFaculty);
 facultyRouter.post("/add",authAdmin,upload.single("image"),addFaculty);

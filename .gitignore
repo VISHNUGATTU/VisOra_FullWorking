@@ -12,7 +12,7 @@ venv/
 *.onnx
 !engine/models/buffalo_s/*.onnx
 engine/data/cache/
-engine/data/index/*.bin
+engine/data/index/
 
 # Node & Dependencies
 node_modules/

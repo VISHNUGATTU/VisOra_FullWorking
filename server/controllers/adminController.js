@@ -17,11 +17,19 @@ export const loginAdmin = async (req, res) => {
   try {
     const { mail, password1, password2 } = req.body;
 
-    if (!mail || !password1 || !password2) {
-      return res.status(400).json({ success: false, message: "Missing credentials" });
+    if (
+      typeof mail !== "string" ||
+      typeof password1 !== "string" ||
+      typeof password2 !== "string" ||
+      !mail.trim() ||
+      !password1 ||
+      !password2
+    ) {
+      return res.status(400).json({ success: false, message: "Invalid credentials format" });
     }
 
-    const admin = await Admin.findOne({ mail });
+    const cleanMail = mail.trim().toLowerCase();
+    const admin = await Admin.findOne({ mail: cleanMail });
     if (!admin) {
       // 📝 Log Failed Attempt
       await logAction({

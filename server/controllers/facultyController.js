@@ -20,7 +20,17 @@ export const loginFaculty = async (req, res) => {
   try {
     const { mail, password } = req.body;
 
-    const faculty = await Faculty.findOne({ mail });
+    if (
+      typeof mail !== "string" ||
+      typeof password !== "string" ||
+      !mail.trim() ||
+      !password
+    ) {
+      return res.status(400).json({ success: false, message: "Email and password are required" });
+    }
+
+    const cleanMail = mail.trim().toLowerCase();
+    const faculty = await Faculty.findOne({ mail: cleanMail });
     if (!faculty) {
       // 📝 Log Failed Attempt
       await logAction({

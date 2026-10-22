@@ -15,14 +15,20 @@ export const loginStudent = async (req, res) => {
   try {
     const { mail, password } = req.body;
 
-    if (!mail || !password) {
+    if (
+      typeof mail !== "string" ||
+      typeof password !== "string" ||
+      !mail.trim() ||
+      !password
+    ) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
       });
     }
 
-    const student = await Student.findOne({ mail });
+    const cleanMail = mail.trim().toLowerCase();
+    const student = await Student.findOne({ mail: cleanMail });
     if (!student) {
       // 📝 Log Failed Attempt
       await logAction({

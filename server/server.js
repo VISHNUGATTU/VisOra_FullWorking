@@ -24,9 +24,23 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const app = express();
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
+
 const PORT = process.env.PORT || 6446;
 const NODE_ENV = process.env.NODE_ENV || "production";
 const PATENT_REF = "Indian Patent App No: 202641036876";
+
+// HTTP Security Headers
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  if (NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  next();
+});
 
 // Asynchronous non-blocking initialization
 (async () => {
@@ -39,28 +53,31 @@ const PATENT_REF = "Indian Patent App No: 202641036876";
   }
 })();
 
-// Dynamic CORS configuration (Optimistic Local + Production whitelist)
+// Dynamic CORS configuration (Trusted Production & Vercel Preview Whitelist)
 const defaultAllowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:4173",
   "http://localhost:3000",
   "http://localhost:6446",
+  "https://visora1.vercel.app",
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
+const allowedOriginRegex = /^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?|https:\/\/([a-zA-Z0-9-]+\.)*vercel\.app|https:\/\/([a-zA-Z0-9-]+\.)*onrender\.com)$/;
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow non-browser requests (e.g. mobile apps, curl, engine worker)
+    // Allow server-to-server, curl, mobile, and engine workers
     if (!origin) return callback(null, true);
-    if (defaultAllowedOrigins.includes(origin) || NODE_ENV === "development") {
+    if (
+      defaultAllowedOrigins.includes(origin) ||
+      allowedOriginRegex.test(origin) ||
+      NODE_ENV === "development"
+    ) {
       return callback(null, true);
     }
-    // Check custom regex if provided in env
-    if (process.env.CORS_ORIGIN_REGEX && new RegExp(process.env.CORS_ORIGIN_REGEX).test(origin)) {
-      return callback(null, true);
-    }
-    return callback(null, true); // Permissive fallback for seamless client connectivity
+    return callback(new Error("CORS Policy: Access from origin not allowed."));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],

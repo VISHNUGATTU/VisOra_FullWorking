@@ -18,7 +18,12 @@ class TelegramService {
    * Returns current Telegram bot operational status.
    */
   getStatus() {
-    const isConfigured = Boolean(this.botToken && this.chatId);
+    const isConfigured = Boolean(
+      this.botToken &&
+      this.chatId &&
+      !this.botToken.includes("your_telegram") &&
+      !this.chatId.includes("your_telegram")
+    );
     return {
       configured: isConfigured,
       mode: isConfigured ? "LIVE" : "SIMULATED",
@@ -84,7 +89,7 @@ class TelegramService {
     };
 
     // If real Telegram credentials are provided, send HTTP request
-    if (this.botToken && this.chatId) {
+    if (this.getStatus().configured) {
       try {
         const url = `${this.apiUrl}/bot${this.botToken}/sendMessage`;
         const response = await fetch(url, {

@@ -27,11 +27,12 @@ import { studentAuth } from "../middlewares/authStudent.js";
 import {facultyAuth} from '../middlewares/authFaculty.js'
 import authAdmin from "../middlewares/authAdmin.js";
 import { upload } from "../configs/multer.js";
+import { authRateLimiter } from "../middlewares/rateLimiter.js";
 
 const studentRouter = express.Router();
 
 /* ================= PUBLIC ROUTES ================= */
-studentRouter.post("/login", loginStudent);
+studentRouter.post("/login", authRateLimiter, loginStudent);
 
 /* ================= STUDENT PRIVATE ROUTES ================= */
 studentRouter.get("/is-auth", studentAuth, isStudentAuth);

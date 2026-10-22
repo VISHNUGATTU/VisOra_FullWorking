@@ -14,13 +14,14 @@ import {
   getComprehensiveAnalytics
 } from "../controllers/adminController.js";
 import authAdmin  from "../middlewares/authAdmin.js";
+import { authRateLimiter } from "../middlewares/rateLimiter.js";
 import  {upload}  from "../configs/multer.js";
 import { getFacultyClasses } from "../controllers/facultyController.js";
 
 
 const adminRouter = express.Router();
 
-adminRouter.post("/login", loginAdmin);
+adminRouter.post("/login", authRateLimiter, loginAdmin);
 adminRouter.get("/is-auth", authAdmin, isAdminAuth);
 adminRouter.post("/logout", authAdmin, logoutAdmin);
 adminRouter.put("/update",authAdmin,upload.single("image"),updateAdminProfile);
