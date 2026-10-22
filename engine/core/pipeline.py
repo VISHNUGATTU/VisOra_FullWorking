@@ -19,10 +19,11 @@ class NeuralPipeline:
         print(f"[*] Initializing InsightFace pipeline with model '{config.MODEL_NAME}' on {config.EXECUTION_PROVIDERS}...")
         self.app = insightface.app.FaceAnalysis(
             name=config.MODEL_NAME,
-            providers=config.EXECUTION_PROVIDERS
+            providers=config.EXECUTION_PROVIDERS,
+            allowed_modules=["detection", "recognition"]
         )
         self.app.prepare(ctx_id=0, det_size=config.DET_SIZE)
-        print("[+] InsightFace Neural Pipeline loaded and ready.")
+        print("[+] InsightFace Neural Pipeline loaded and ready (Lean Cloud Memory Mode: ~123MB).")
 
     @staticmethod
     def load_from_bytes(data: bytes) -> np.ndarray:

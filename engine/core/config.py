@@ -19,7 +19,7 @@ class Config:
     # InsightFace & Model Settings
     # 'buffalo_s' provides det_500m (SCRFD/RetinaFace fast) + w600k_mbf (ArcFace 512D)
     MODEL_NAME: str = os.getenv("VISORA_MODEL_NAME", "buffalo_s")
-    DET_SIZE: tuple = (640, 640)
+    DET_SIZE: tuple = (320, 320)
     EMBEDDING_DIM: int = 512
     EXECUTION_PROVIDERS: list = ["CPUExecutionProvider"]
 
