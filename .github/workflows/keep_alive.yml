@@ -1,0 +1,29 @@
+name: VisOra 24/7 Cloud Keep-Alive Cron
+
+on:
+  schedule:
+    # Runs every 14 minutes to prevent Render free-tier spin-down
+    - cron: '*/14 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  ping-services:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Node.js Backend Server
+        run: |
+          if [ -n "${{ secrets.RENDER_SERVER_URL }}" ]; then
+            echo "Pinging Node.js Server: ${{ secrets.RENDER_SERVER_URL }}/health"
+            curl -s -f -m 20 "${{ secrets.RENDER_SERVER_URL }}/health" || echo "Server ping failed or waking up"
+          else
+            echo "RENDER_SERVER_URL secret not set. Skipping server ping."
+          fi
+
+      - name: Ping Python Neural AI Engine
+        run: |
+          if [ -n "${{ secrets.RENDER_ENGINE_URL }}" ]; then
+            echo "Pinging Neural Engine: ${{ secrets.RENDER_ENGINE_URL }}/health"
+            curl -s -f -m 25 "${{ secrets.RENDER_ENGINE_URL }}/health" || echo "Engine ping failed or waking up"
+          else
+            echo "RENDER_ENGINE_URL secret not set. Skipping engine ping."
+          fi

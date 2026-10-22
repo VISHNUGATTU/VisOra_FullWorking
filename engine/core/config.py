@@ -34,6 +34,6 @@ class Config:
 
     # Server settings
     HOST: str = os.getenv("VISORA_ENGINE_HOST", "0.0.0.0")
-    PORT: int = int(os.getenv("VISORA_ENGINE_PORT", "8000"))
+    PORT: int = int(os.getenv("PORT", os.getenv("VISORA_ENGINE_PORT", "8000")))
 
 config = Config()

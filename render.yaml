@@ -1,0 +1,42 @@
+services:
+  # 1. Node.js Express Core Backend
+  - type: web
+    name: visora-server
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        value: https://visora1.vercel.app
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: NEURAL_ENGINE_URL
+        sync: false
+
+  # 2. Python Neural Identity Engine (InsightFace + FAISS)
+  - type: web
+    name: visora-engine
+    runtime: docker
+    dockerfilePath: Dockerfile.engine
+    plan: free
+    region: oregon
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: VISORA_ENGINE_HOST
+        value: 0.0.0.0
+      - key: VISORA_MODEL_NAME
+        value: buffalo_s
+      - key: DETECTION_THRESHOLD
+        value: "0.50"
+      - key: COSINE_THRESHOLD
+        value: "0.38"
+      - key: ALLOWED_ORIGINS
+        value: https://visora1.vercel.app,http://localhost:5173
