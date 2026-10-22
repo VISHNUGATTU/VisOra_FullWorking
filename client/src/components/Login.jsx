@@ -265,23 +265,13 @@ const Login = () => {
         {/* Desktop branding panel */}
         <section className="hidden lg:block">
           <div className="mb-10 inline-flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-blue-500/20 to-cyan-400/10 shadow-lg shadow-blue-950/40">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="h-7 w-7 text-cyan-300"
-                stroke="currentColor"
-                strokeWidth="1.7"
-              >
-                <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
-                <circle cx="12" cy="12" r="3" />
-                <path
-                  d="M12 2v2M12 20v2M2 12h2M20 12h2"
-                  opacity=".65"
-                />
-              </svg>
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-blue-500/20 to-cyan-400/10 shadow-lg shadow-blue-950/40">
+              <img
+                src="/visora-logo.svg"
+                alt="Logo"
+                className="h-full w-full object-contain p-1"
+              />
             </div>
-
             <div>
               <h1 className="text-2xl font-bold tracking-tight">
                 Vis<span className="text-cyan-300">Ora</span>
@@ -351,17 +341,12 @@ const Login = () => {
         <section className="mx-auto w-full max-w-[430px]">
           {/* Mobile branding */}
           <div className="mb-5 flex flex-col items-center text-center lg:hidden">
-            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-blue-500/20 to-cyan-400/10">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="h-6 w-6 text-cyan-300"
-                stroke="currentColor"
-                strokeWidth="1.7"
-              >
-                <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
+            <div className="mb-3 flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-blue-500/20 to-cyan-400/10 shadow-lg shadow-blue-950/40">
+              <img
+                src="/visora-logo.svg"
+                alt="Logo"
+                className="h-full w-full object-contain p-1"
+              />
             </div>
 
             <h1 className="text-2xl font-bold tracking-tight">
