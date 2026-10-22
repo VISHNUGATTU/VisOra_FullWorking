@@ -27,7 +27,7 @@ const NEURAL_ENGINE_URL =
   import.meta.env.VITE_NEURAL_ENGINE_URL ||
   (typeof window !== "undefined" && window.location.hostname === "localhost"
     ? "http://localhost:8000"
-    : "/engine");
+    : "https://visora-engine.onrender.com");
 
 const NeuralAttendanceScanner = () => {
   // --- States ---
@@ -111,15 +111,34 @@ const NeuralAttendanceScanner = () => {
   const checkEngineStatus = async () => {
     try {
       setCheckingEngine(true);
-      const res = await axios.get("/api/faculty/engine-status");
-      setEngineHealth({
-        online: res.data.online,
-        status: res.data.status,
-        patent: res.data.patent,
-        vectorCount: res.data.vector_store?.total_enrolled || 0
-      });
-    } catch (err) {
-      setEngineHealth({ online: false, status: "offline" });
+      // 1. First attempt through Node.js proxy bridge
+      const res = await axios.get("/api/faculty/engine-status", { timeout: 4000 });
+      if (res.data && res.data.online) {
+        setEngineHealth({
+          online: true,
+          status: res.data.status,
+          patent: res.data.patent,
+          vectorCount: res.data.vector_store?.total_enrolled || 0
+        });
+        return;
+      }
+      throw new Error("Proxy offline");
+    } catch (proxyErr) {
+      // 2. Direct fallback ping to FastAPI Neural Engine
+      try {
+        const directRes = await axios.get(`${NEURAL_ENGINE_URL}/api/v1/health`, { timeout: 4000 });
+        if (directRes.data && directRes.data.status === "healthy") {
+          setEngineHealth({
+            online: true,
+            status: "healthy",
+            patent: directRes.data.patent,
+            vectorCount: directRes.data.vector_store?.total_enrolled || 0
+          });
+          return;
+        }
+      } catch (directErr) {
+        setEngineHealth({ online: false, status: "offline" });
+      }
     } finally {
       setCheckingEngine(false);
     }
@@ -191,6 +210,14 @@ const NeuralAttendanceScanner = () => {
     let isProcessing = false;
 
     const streamLoop = async () => {
+      // 1. Pause audit when browser tab is inactive / minimized to save CPU & Render egress
+      if (typeof document !== "undefined" && document.hidden) {
+        setTimeout(() => {
+          animationFrameId = requestAnimationFrame(streamLoop);
+        }, 600);
+        return;
+      }
+
       if (!isAuditing || !videoRef.current || !canvasRef.current || isProcessing) {
         animationFrameId = requestAnimationFrame(streamLoop);
         return;
@@ -206,13 +233,22 @@ const NeuralAttendanceScanner = () => {
       const t0 = performance.now();
 
       try {
+        const vw = video.videoWidth || 640;
+        const vh = video.videoHeight || 480;
+
+        // Adaptive frame scaling: Cap width at 720 for optimal network throughput (~25KB/frame)
+        const maxDim = 720;
+        const scale = vw > maxDim ? maxDim / vw : 1.0;
+        const sendW = Math.round(vw * scale);
+        const sendH = Math.round(vh * scale);
+
         // Capture frame to temporary canvas
         const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = video.videoWidth || 640;
-        tempCanvas.height = video.videoHeight || 480;
+        tempCanvas.width = sendW;
+        tempCanvas.height = sendH;
         const ctx = tempCanvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-        const imageBase64 = tempCanvas.toDataURL("image/jpeg", 0.7);
+        ctx.drawImage(video, 0, 0, sendW, sendH);
+        const imageBase64 = tempCanvas.toDataURL("image/jpeg", 0.65);
 
         // Send frame to Python Neural Engine via Fast HTTP
         const res = await axios.post(`${NEURAL_ENGINE_URL}/api/v1/audit/frame`, {
@@ -235,7 +271,26 @@ const NeuralAttendanceScanner = () => {
           if (res.data.session_state) setSessionState(res.data.session_state);
           if (res.data.reactivation_count !== undefined) setReactivationCount(res.data.reactivation_count);
           if (res.data.randomized_trigger?.offset_minutes) setRandomOffsetMin(res.data.randomized_trigger.offset_minutes);
-          const faces = res.data.tracked_faces || [];
+
+          // Remap bounding boxes back to original video dimensions if scaled
+          let faces = res.data.tracked_faces || [];
+          if (scale !== 1.0) {
+            faces = faces.map((f) => {
+              if (f.bbox && f.bbox.length === 4) {
+                return {
+                  ...f,
+                  bbox: [
+                    Math.round(f.bbox[0] / scale),
+                    Math.round(f.bbox[1] / scale),
+                    Math.round(f.bbox[2] / scale),
+                    Math.round(f.bbox[3] / scale)
+                  ]
+                };
+              }
+              return f;
+            });
+          }
+
           setTrackedFaces(faces);
 
           // Update verified student map
@@ -274,18 +329,29 @@ const NeuralAttendanceScanner = () => {
         // Graceful handling of network skip
       } finally {
         isProcessing = false;
-        // Schedule next sample in ~120ms (approx 8-10 audited FPS on client, 0.08ms on backend)
+        // Schedule next sample with adaptive debounce ~130ms (approx 7-8 audited FPS on client)
         setTimeout(() => {
           animationFrameId = requestAnimationFrame(streamLoop);
-        }, 120);
+        }, 130);
       }
     };
+
+    const handleVisibility = () => {
+      if (document.hidden && canvasRef.current) {
+        const ctx = canvasRef.current.getContext("2d");
+        if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
 
     if (isAuditing) {
       animationFrameId = requestAnimationFrame(streamLoop);
     }
 
-    return () => cancelAnimationFrame(animationFrameId);
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [isAuditing, sessionId, useAdaptiveTiling, simulatedThermal]);
 
   /* ================= 5. CANVAS BIOMETRIC HUD RENDERER ================= */

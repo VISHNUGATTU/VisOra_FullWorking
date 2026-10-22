@@ -1,7 +1,11 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-const NEURAL_ENGINE_URL = process.env.NEURAL_ENGINE_URL || "http://localhost:8000";
+const NEURAL_ENGINE_URL =
+  process.env.NEURAL_ENGINE_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://visora-engine.onrender.com"
+    : "http://localhost:8000");
 
 /**
  * Service bridge between Node.js Express backend and
@@ -18,7 +22,7 @@ class NeuralService {
   async checkHealth() {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       const response = await fetch(`${this.baseUrl}/api/v1/health`, {
         signal: controller.signal,
