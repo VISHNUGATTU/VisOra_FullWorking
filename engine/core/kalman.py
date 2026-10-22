@@ -113,3 +113,9 @@ class KalmanBoxTracker:
     def get_state(self) -> list:
         """Returns the current bounding box estimate."""
         return self.convert_x_to_bbox(self.x)
+
+    def get_velocity_magnitude(self) -> float:
+        """Returns Euclidean velocity magnitude in pixels per frame."""
+        dx = float(self.x[4, 0])
+        dy = float(self.x[5, 0])
+        return float(np.sqrt(dx**2 + dy**2))

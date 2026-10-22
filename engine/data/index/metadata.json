@@ -18,15 +18,6 @@
     "enrolled_at": "2026-10-15T12:43:59.267891"
   },
   {
-    "student_id": "698c244927b9fdd9c02561cf",
-    "rollno": "23071A6788",
-    "name": "GATTU VISHNU PHANI",
-    "branch": "CSE-DS",
-    "year": 3,
-    "section": "B",
-    "enrolled_at": "2026-10-15T12:44:01.073097"
-  },
-  {
     "student_id": "699354eebe42784e276b8ccb",
     "rollno": "23071A67D0",
     "name": "Y GAYATHRI KARTHIKEYA",
@@ -34,5 +25,1148 @@
     "year": 3,
     "section": "B",
     "enrolled_at": "2026-10-15T12:44:03.230010"
+  },
+  {
+    "student_id": "ST_23071A6788",
+    "rollno": "23071A6788",
+    "name": "G. Vishnu Phani",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6789",
+    "rollno": "23071A6789",
+    "name": "Y. Gayathri Karthikeya",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6701",
+    "rollno": "23071A6701",
+    "name": "Student 23071A6701",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6702",
+    "rollno": "23071A6702",
+    "name": "Student 23071A6702",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6703",
+    "rollno": "23071A6703",
+    "name": "Student 23071A6703",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6704",
+    "rollno": "23071A6704",
+    "name": "Student 23071A6704",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6705",
+    "rollno": "23071A6705",
+    "name": "Student 23071A6705",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6706",
+    "rollno": "23071A6706",
+    "name": "Student 23071A6706",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6707",
+    "rollno": "23071A6707",
+    "name": "Student 23071A6707",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6708",
+    "rollno": "23071A6708",
+    "name": "Student 23071A6708",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6709",
+    "rollno": "23071A6709",
+    "name": "Student 23071A6709",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6710",
+    "rollno": "23071A6710",
+    "name": "Student 23071A6710",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6711",
+    "rollno": "23071A6711",
+    "name": "Student 23071A6711",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6712",
+    "rollno": "23071A6712",
+    "name": "Student 23071A6712",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6713",
+    "rollno": "23071A6713",
+    "name": "Student 23071A6713",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6714",
+    "rollno": "23071A6714",
+    "name": "Student 23071A6714",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6715",
+    "rollno": "23071A6715",
+    "name": "Student 23071A6715",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6716",
+    "rollno": "23071A6716",
+    "name": "Student 23071A6716",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6717",
+    "rollno": "23071A6717",
+    "name": "Student 23071A6717",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6718",
+    "rollno": "23071A6718",
+    "name": "Student 23071A6718",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6719",
+    "rollno": "23071A6719",
+    "name": "Student 23071A6719",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6720",
+    "rollno": "23071A6720",
+    "name": "Student 23071A6720",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6721",
+    "rollno": "23071A6721",
+    "name": "Student 23071A6721",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6722",
+    "rollno": "23071A6722",
+    "name": "Student 23071A6722",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6723",
+    "rollno": "23071A6723",
+    "name": "Student 23071A6723",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6724",
+    "rollno": "23071A6724",
+    "name": "Student 23071A6724",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6725",
+    "rollno": "23071A6725",
+    "name": "Student 23071A6725",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6726",
+    "rollno": "23071A6726",
+    "name": "Student 23071A6726",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6727",
+    "rollno": "23071A6727",
+    "name": "Student 23071A6727",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6728",
+    "rollno": "23071A6728",
+    "name": "Student 23071A6728",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6729",
+    "rollno": "23071A6729",
+    "name": "Student 23071A6729",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6730",
+    "rollno": "23071A6730",
+    "name": "Student 23071A6730",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6731",
+    "rollno": "23071A6731",
+    "name": "Student 23071A6731",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6732",
+    "rollno": "23071A6732",
+    "name": "Student 23071A6732",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6733",
+    "rollno": "23071A6733",
+    "name": "Student 23071A6733",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6734",
+    "rollno": "23071A6734",
+    "name": "Student 23071A6734",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6735",
+    "rollno": "23071A6735",
+    "name": "Student 23071A6735",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6736",
+    "rollno": "23071A6736",
+    "name": "Student 23071A6736",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6737",
+    "rollno": "23071A6737",
+    "name": "Student 23071A6737",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6738",
+    "rollno": "23071A6738",
+    "name": "Student 23071A6738",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6739",
+    "rollno": "23071A6739",
+    "name": "Student 23071A6739",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A6740",
+    "rollno": "23071A6740",
+    "name": "Student 23071A6740",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "B",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A01",
+    "rollno": "23071A67A01",
+    "name": "Student 23071A67A01",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A02",
+    "rollno": "23071A67A02",
+    "name": "Student 23071A67A02",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A03",
+    "rollno": "23071A67A03",
+    "name": "Student 23071A67A03",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A04",
+    "rollno": "23071A67A04",
+    "name": "Student 23071A67A04",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A05",
+    "rollno": "23071A67A05",
+    "name": "Student 23071A67A05",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A06",
+    "rollno": "23071A67A06",
+    "name": "Student 23071A67A06",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A07",
+    "rollno": "23071A67A07",
+    "name": "Student 23071A67A07",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A08",
+    "rollno": "23071A67A08",
+    "name": "Student 23071A67A08",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A09",
+    "rollno": "23071A67A09",
+    "name": "Student 23071A67A09",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A10",
+    "rollno": "23071A67A10",
+    "name": "Student 23071A67A10",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A11",
+    "rollno": "23071A67A11",
+    "name": "Student 23071A67A11",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A12",
+    "rollno": "23071A67A12",
+    "name": "Student 23071A67A12",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A13",
+    "rollno": "23071A67A13",
+    "name": "Student 23071A67A13",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A14",
+    "rollno": "23071A67A14",
+    "name": "Student 23071A67A14",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A15",
+    "rollno": "23071A67A15",
+    "name": "Student 23071A67A15",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A16",
+    "rollno": "23071A67A16",
+    "name": "Student 23071A67A16",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A17",
+    "rollno": "23071A67A17",
+    "name": "Student 23071A67A17",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A18",
+    "rollno": "23071A67A18",
+    "name": "Student 23071A67A18",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A19",
+    "rollno": "23071A67A19",
+    "name": "Student 23071A67A19",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A20",
+    "rollno": "23071A67A20",
+    "name": "Student 23071A67A20",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A21",
+    "rollno": "23071A67A21",
+    "name": "Student 23071A67A21",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A22",
+    "rollno": "23071A67A22",
+    "name": "Student 23071A67A22",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A23",
+    "rollno": "23071A67A23",
+    "name": "Student 23071A67A23",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A24",
+    "rollno": "23071A67A24",
+    "name": "Student 23071A67A24",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A25",
+    "rollno": "23071A67A25",
+    "name": "Student 23071A67A25",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A26",
+    "rollno": "23071A67A26",
+    "name": "Student 23071A67A26",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A27",
+    "rollno": "23071A67A27",
+    "name": "Student 23071A67A27",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A28",
+    "rollno": "23071A67A28",
+    "name": "Student 23071A67A28",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A29",
+    "rollno": "23071A67A29",
+    "name": "Student 23071A67A29",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_23071A67A30",
+    "rollno": "23071A67A30",
+    "name": "Student 23071A67A30",
+    "branch": "CSE-DS",
+    "year": 3,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5401",
+    "rollno": "24071A5401",
+    "name": "Student 24071A5401",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5402",
+    "rollno": "24071A5402",
+    "name": "Student 24071A5402",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5403",
+    "rollno": "24071A5403",
+    "name": "Student 24071A5403",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5404",
+    "rollno": "24071A5404",
+    "name": "Student 24071A5404",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5405",
+    "rollno": "24071A5405",
+    "name": "Student 24071A5405",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5406",
+    "rollno": "24071A5406",
+    "name": "Student 24071A5406",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5407",
+    "rollno": "24071A5407",
+    "name": "Student 24071A5407",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5408",
+    "rollno": "24071A5408",
+    "name": "Student 24071A5408",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5409",
+    "rollno": "24071A5409",
+    "name": "Student 24071A5409",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5410",
+    "rollno": "24071A5410",
+    "name": "Student 24071A5410",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5411",
+    "rollno": "24071A5411",
+    "name": "Student 24071A5411",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5412",
+    "rollno": "24071A5412",
+    "name": "Student 24071A5412",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5413",
+    "rollno": "24071A5413",
+    "name": "Student 24071A5413",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5414",
+    "rollno": "24071A5414",
+    "name": "Student 24071A5414",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5415",
+    "rollno": "24071A5415",
+    "name": "Student 24071A5415",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5416",
+    "rollno": "24071A5416",
+    "name": "Student 24071A5416",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5417",
+    "rollno": "24071A5417",
+    "name": "Student 24071A5417",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5418",
+    "rollno": "24071A5418",
+    "name": "Student 24071A5418",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5419",
+    "rollno": "24071A5419",
+    "name": "Student 24071A5419",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5420",
+    "rollno": "24071A5420",
+    "name": "Student 24071A5420",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5421",
+    "rollno": "24071A5421",
+    "name": "Student 24071A5421",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5422",
+    "rollno": "24071A5422",
+    "name": "Student 24071A5422",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5423",
+    "rollno": "24071A5423",
+    "name": "Student 24071A5423",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5424",
+    "rollno": "24071A5424",
+    "name": "Student 24071A5424",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5425",
+    "rollno": "24071A5425",
+    "name": "Student 24071A5425",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5426",
+    "rollno": "24071A5426",
+    "name": "Student 24071A5426",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5427",
+    "rollno": "24071A5427",
+    "name": "Student 24071A5427",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5428",
+    "rollno": "24071A5428",
+    "name": "Student 24071A5428",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5429",
+    "rollno": "24071A5429",
+    "name": "Student 24071A5429",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_24071A5430",
+    "rollno": "24071A5430",
+    "name": "Student 24071A5430",
+    "branch": "AI&DS",
+    "year": 2,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6201",
+    "rollno": "21071A6201",
+    "name": "Student 21071A6201",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6202",
+    "rollno": "21071A6202",
+    "name": "Student 21071A6202",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6203",
+    "rollno": "21071A6203",
+    "name": "Student 21071A6203",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6204",
+    "rollno": "21071A6204",
+    "name": "Student 21071A6204",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6205",
+    "rollno": "21071A6205",
+    "name": "Student 21071A6205",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6206",
+    "rollno": "21071A6206",
+    "name": "Student 21071A6206",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6207",
+    "rollno": "21071A6207",
+    "name": "Student 21071A6207",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6208",
+    "rollno": "21071A6208",
+    "name": "Student 21071A6208",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6209",
+    "rollno": "21071A6209",
+    "name": "Student 21071A6209",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6210",
+    "rollno": "21071A6210",
+    "name": "Student 21071A6210",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6211",
+    "rollno": "21071A6211",
+    "name": "Student 21071A6211",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6212",
+    "rollno": "21071A6212",
+    "name": "Student 21071A6212",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6213",
+    "rollno": "21071A6213",
+    "name": "Student 21071A6213",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6214",
+    "rollno": "21071A6214",
+    "name": "Student 21071A6214",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6215",
+    "rollno": "21071A6215",
+    "name": "Student 21071A6215",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6216",
+    "rollno": "21071A6216",
+    "name": "Student 21071A6216",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6217",
+    "rollno": "21071A6217",
+    "name": "Student 21071A6217",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6218",
+    "rollno": "21071A6218",
+    "name": "Student 21071A6218",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6219",
+    "rollno": "21071A6219",
+    "name": "Student 21071A6219",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6220",
+    "rollno": "21071A6220",
+    "name": "Student 21071A6220",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6221",
+    "rollno": "21071A6221",
+    "name": "Student 21071A6221",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6222",
+    "rollno": "21071A6222",
+    "name": "Student 21071A6222",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6223",
+    "rollno": "21071A6223",
+    "name": "Student 21071A6223",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6224",
+    "rollno": "21071A6224",
+    "name": "Student 21071A6224",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
+  },
+  {
+    "student_id": "ST_21071A6225",
+    "rollno": "21071A6225",
+    "name": "Student 21071A6225",
+    "branch": "CSE-CyS",
+    "year": 4,
+    "section": "A",
+    "enrolled_at": ""
   }
 ]

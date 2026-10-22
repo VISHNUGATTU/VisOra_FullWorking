@@ -115,7 +115,8 @@ class VectorStore:
         query_embedding: np.ndarray,
         top_k: int = 1,
         threshold: Optional[float] = None,
-        filter_criteria: Optional[Dict] = None
+        filter_criteria: Optional[Dict] = None,
+        verbose: bool = True
     ) -> Optional[Dict]:
         """
         Sub-millisecond identification of a single face embedding.
@@ -168,7 +169,8 @@ class VectorStore:
 
             similarity_score = float(sim)
             is_match = similarity_score >= threshold
-            print(f"[*] FAISS Search -> Top: {meta.get('rollno')} ({meta.get('name')}) | sim={similarity_score:.4f} | threshold={threshold} | identified={is_match}")
+            if verbose:
+                print(f"[*] FAISS Search -> Top: {meta.get('rollno')} ({meta.get('name')}) | sim={similarity_score:.4f} | threshold={threshold} | identified={is_match}")
 
             if is_match:
                 return {
