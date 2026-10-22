@@ -45,8 +45,13 @@ const NeuralAttendanceScanner = () => {
   const [useAdaptiveTiling, setUseAdaptiveTiling] = useState(true);
   const [simulatedThermal, setSimulatedThermal] = useState(36.5);
 
-  // Session & Tracking
+  // Session & Tracking (Patent Claims 1c, 1d)
   const [sessionId, setSessionId] = useState(() => `AUDIT_SESSION_${Date.now()}`);
+  const [sessionState, setSessionState] = useState("CAPTURE_ACTIVE");
+  const [reactivationCount, setReactivationCount] = useState(0);
+  const [randomOffsetMin, setRandomOffsetMin] = useState(15);
+  const [minPresenceMin, setMinPresenceMin] = useState(15);
+  const [triggeringReactivation, setTriggeringReactivation] = useState(false);
   const [trackedFaces, setTrackedFaces] = useState([]);
   const [verifiedStudents, setVerifiedStudents] = useState(new Map());
   const [frameCount, setFrameCount] = useState(0);
@@ -55,6 +60,22 @@ const NeuralAttendanceScanner = () => {
 
   // Direct snapshot/upload fallback mode
   const [uploadedImagePreview, setUploadedImagePreview] = useState(null);
+
+  const triggerReactivation = async () => {
+    try {
+      setTriggeringReactivation(true);
+      const res = await axios.post(`${NEURAL_ENGINE_URL}/api/v1/audit/session/${sessionId}/reactivate`);
+      if (res.data.success) {
+        toast.success(`Adaptive Reactivation #${res.data.reactivation_count} triggered! Scanning for late arrivals.`);
+        setReactivationCount(res.data.reactivation_count);
+        setSessionState(res.data.session_state);
+      }
+    } catch (err) {
+      toast.error("Could not trigger reactivation on engine.");
+    } finally {
+      setTriggeringReactivation(false);
+    }
+  };
 
   /* ================= 1. FETCH CLASSES & ENGINE STATUS ================= */
   useEffect(() => {
@@ -207,6 +228,9 @@ const NeuralAttendanceScanner = () => {
         if (res.data.success) {
           setFrameCount(res.data.frame_index);
           setLastInferenceMs(Math.round(performance.now() - t0));
+          if (res.data.session_state) setSessionState(res.data.session_state);
+          if (res.data.reactivation_count !== undefined) setReactivationCount(res.data.reactivation_count);
+          if (res.data.randomized_trigger?.offset_minutes) setRandomOffsetMin(res.data.randomized_trigger.offset_minutes);
           const faces = res.data.tracked_faces || [];
           setTrackedFaces(faces);
 
@@ -601,6 +625,59 @@ const NeuralAttendanceScanner = () => {
           <div className="flex items-center gap-1 text-[11px] text-slate-400">
             <span>PIR: Motion Verified</span>
           </div>
+        </div>
+      </div>
+
+      {/* ================= PATENT PHASE 2 & 3: APSCHEDULER & PRESENCE DURATION TELEMETRY ================= */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 rounded-2xl border border-indigo-500/30 shadow-xl flex flex-wrap items-center justify-between gap-4 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center text-indigo-300 font-bold">
+            <Sparkles size={18} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white tracking-wide uppercase text-[11px]">
+                APScheduler Autonomous Engine
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 font-mono">
+                Patent Claims 1c, 1d, 3, 4
+              </span>
+            </div>
+            <p className="text-slate-400 text-[11px] mt-0.5">
+              Randomized Trigger: <b className="text-emerald-400">+{randomOffsetMin}m Offset</b> (Defeats Premeditated Presence) | Dwell Threshold: <b className="text-amber-300">{minPresenceMin}m Min Presence</b>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Phase Pill */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700">
+            <span className="text-slate-400 text-[11px]">Phase:</span>
+            <span className={`font-semibold font-mono text-[11px] ${
+              sessionState === "REACTIVATED"
+                ? "text-amber-400 animate-pulse"
+                : sessionState === "MONITORING_WINDOW"
+                ? "text-purple-400"
+                : "text-emerald-400"
+            }`}>
+              {sessionState === "REACTIVATED"
+                ? `⚡ REACTIVATING (#${reactivationCount})`
+                : sessionState === "MONITORING_WINDOW"
+                ? "👁️ MONITORING LATE ENTRANTS"
+                : "INITIAL CAPTURE ACTIVE"}
+            </span>
+          </div>
+
+          {/* Test Reactivation Button */}
+          <button
+            onClick={triggerReactivation}
+            disabled={triggeringReactivation}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition active:scale-95 disabled:opacity-50"
+            title="Simulate a new entrant entering the classroom during the preset monitoring interval (Patent Claim 1d)"
+          >
+            <RefreshCw size={13} className={triggeringReactivation ? "animate-spin" : ""} />
+            <span>Test Adaptive Reactivation</span>
+          </button>
         </div>
       </div>
 

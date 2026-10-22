@@ -20,7 +20,11 @@ import {
   notifyDefaultersEmail,
   markNeuralAttendance,
   getNeuralEngineStatus,
-  getAllFacultyList
+  getAllFacultyList,
+  scheduleNeuralTrigger,
+  getNeuralScheduledSlots,
+  reactivateNeuralSession,
+  getSessionPresenceBreakdown
 } from "../controllers/facultyController.js";
 
 import { facultyAuth } from "../middlewares/authFaculty.js";
@@ -51,5 +55,9 @@ facultyRouter.get('/all',isFacultyAuth, getAllFacultyList);
 facultyRouter.post('/notify-email', facultyAuth, notifyDefaultersEmail);
 facultyRouter.post('/auto-attendance', facultyAuth, markNeuralAttendance);
 facultyRouter.get('/engine-status', facultyAuth, getNeuralEngineStatus);
+facultyRouter.post('/schedule-neural-trigger', facultyAuth, scheduleNeuralTrigger);
+facultyRouter.get('/neural-scheduled-slots', facultyAuth, getNeuralScheduledSlots);
+facultyRouter.post('/reactivate-session', facultyAuth, reactivateNeuralSession);
+facultyRouter.get('/session-presence/:sessionId', facultyAuth, getSessionPresenceBreakdown);
 
 export default facultyRouter;

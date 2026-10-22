@@ -1216,4 +1216,77 @@ export const getNeuralEngineStatus = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ success: false, online: false, message: error.message });
   }
-};
+};
+
+/**
+ * Registers an institutional lecture slot with the APScheduler Automation Module (Patent Claim 1c, 3).
+ */
+export const scheduleNeuralTrigger = async (req, res) => {
+  try {
+    const { slotId, subject, branch, year, section, startTime, endTime, minOffsetMin, maxOffsetMin, minPresenceDurationMin, room, runRelativeSeconds } = req.body;
+    const result = await neuralService.registerScheduleSlot({
+      slotId: slotId || `SLOT_${Date.now()}`,
+      subject,
+      branch,
+      year,
+      section,
+      startTime,
+      endTime,
+      minOffsetMin,
+      maxOffsetMin,
+      minPresenceDurationMin,
+      room,
+      runRelativeSeconds
+    });
+
+    if (!result.success) {
+      return res.status(500).json({ success: false, message: result.error || "Failed to schedule slot" });
+    }
+
+    return res.json({ success: true, ...result.data });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Lists all timetable slots registered with APScheduler and their randomized trigger status.
+ */
+export const getNeuralScheduledSlots = async (req, res) => {
+  try {
+    const result = await neuralService.getScheduledSlots();
+    return res.json(result.data || { success: false });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Triggers adaptive reactivation of camera recognition for late arrivals (Patent Claim 1d, 4).
+ */
+export const reactivateNeuralSession = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: "Missing sessionId" });
+    }
+    const result = await neuralService.reactivateSession(sessionId);
+    return res.json(result.data || { success: false });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Returns student dwell times and continuous presence duration breakdown (Patent Claim 1d, 4).
+ */
+export const getSessionPresenceBreakdown = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const result = await neuralService.getSessionPresence(sessionId);
+    return res.json(result.data || { success: false });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+

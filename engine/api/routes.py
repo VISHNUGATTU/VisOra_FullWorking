@@ -9,6 +9,7 @@ from engine.core.pipeline import pipeline, NeuralPipeline
 from engine.core.vector_store import vector_store, VectorStore
 from engine.core.tiling import adaptive_tiler
 from engine.core.auditor import session_manager
+from engine.core.scheduler import schedule_manager
 from engine.core.rppg import rppg_detector
 from engine.core.sensor_fusion import sensor_fusion_engine, SensorTelemetry, FusionResult
 from engine.api.schemas import (
@@ -26,6 +27,9 @@ from engine.api.schemas import (
     TrackedFaceResult,
     SessionCreatePayload,
     SessionSummaryResponse,
+    ScheduleRegisterPayload,
+    ScheduleRegisterResponse,
+    PresenceBreakdownResponse,
     RPPGLivenessPayload,
     RPPGLivenessResponse,
     FusionEvaluatePayload,
@@ -377,13 +381,16 @@ def create_audit_session(payload: SessionCreatePayload):
         subject=payload.subject or "",
         branch=payload.branch or "",
         section=payload.section or "",
-        year=payload.year
+        year=payload.year,
+        min_presence_duration_seconds=payload.min_presence_duration_seconds or 900
     )
     return {
         "success": True,
         "message": f"Audit session '{payload.session_id}' initialized.",
         "session_id": session.session_id,
-        "created_at": session.created_at
+        "created_at": session.created_at,
+        "session_state": session.state,
+        "min_presence_duration_seconds": session.min_presence_duration_seconds
     }
 
 @router.post("/audit/frame", response_model=StreamFrameResponse)
@@ -391,6 +398,7 @@ def audit_stream_frame(payload: StreamFramePayload):
     """
     Processes a frame in a video stream with Optical Tracking, rPPG liveness, and Sensor Fusion.
     Runs heavy neural detection every N frames, and 0.08ms optical Kalman tracking on intermediate frames.
+    Implements Adaptive Reactivation and Dwell-Time Tracking (Patent Claims 1c, 1d, 4).
     """
     start_time = time.time()
     try:
@@ -418,12 +426,16 @@ def audit_stream_frame(payload: StreamFramePayload):
         return StreamFrameResponse(
             success=True,
             session_id=result["session_id"],
+            session_state=result.get("session_state", "CAPTURE_ACTIVE"),
             frame_index=result["frame_index"],
             is_detection_frame=result["is_detection_frame"],
+            is_reactivation_frame=result.get("is_reactivation_frame", False),
+            reactivation_count=result.get("reactivation_count", 0),
             tracked_faces_count=result["tracked_faces_count"],
             tracked_faces=result["tracked_faces"],
             verified_students_count=result["verified_students_count"],
-            processing_time_ms=processing_time_ms
+            processing_time_ms=processing_time_ms,
+            randomized_trigger=result.get("randomized_trigger")
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Tracking frame error: {str(e)}")
@@ -437,6 +449,31 @@ def get_session_summary(session_id: str, min_frames: int = 3):
     summary = session.get_summary(min_frames_threshold=min_frames)
     return summary
 
+@router.get("/audit/session/{session_id}/presence", response_model=PresenceBreakdownResponse)
+def get_session_presence_breakdown(session_id: str):
+    """Retrieves real-time student dwell times, arrival classifications, and presence duration telemetry."""
+    session = session_manager.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+    data = session.get_presence_breakdown()
+    return PresenceBreakdownResponse(success=True, **data)
+
+@router.post("/audit/session/{session_id}/reactivate")
+def force_session_reactivation(session_id: str):
+    """Manually triggers adaptive reactivation of the camera recognition engine (Patent Claim 1d)."""
+    session = session_manager.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+    session.state = "REACTIVATED"
+    session.reactivation_count += 1
+    session.last_reactivation_epoch = time.time()
+    return {
+        "success": True,
+        "message": f"Adaptive reactivation #{session.reactivation_count} triggered for session '{session_id}'.",
+        "session_state": session.state,
+        "reactivation_count": session.reactivation_count
+    }
+
 @router.post("/audit/session/{session_id}/finalize", response_model=SessionSummaryResponse)
 def finalize_session(session_id: str, min_frames: int = 3):
     """Concludes the auditing session and returns final verified student attendance."""
@@ -444,6 +481,58 @@ def finalize_session(session_id: str, min_frames: int = 3):
     if not summary:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
     return summary
+
+# ================= PHASE 2: APSCHEDULER RANDOMIZED TIMETABLE AUTOMATION =================
+
+@router.post("/schedule/register", response_model=ScheduleRegisterResponse)
+def register_lecture_schedule(payload: ScheduleRegisterPayload):
+    """
+    Registers an institutional timetable slot with the APScheduler Automation Module (Patent Claim 1c, 3, 10c).
+    Computes a stochastic randomized trigger time within the class period to defeat proxy manipulation.
+    """
+    try:
+        slot = schedule_manager.schedule_lecture(
+            slot_id=payload.slot_id,
+            subject=payload.subject,
+            branch=payload.branch,
+            year=payload.year,
+            section=payload.section,
+            start_time_str=payload.start_time,
+            end_time_str=payload.end_time,
+            min_offset_min=payload.min_offset_min or 10,
+            max_offset_min=payload.max_offset_min or 25,
+            min_presence_duration_min=payload.min_presence_duration_min or 15,
+            room=payload.room or "ROOM_101",
+            run_relative_seconds=payload.run_relative_seconds
+        )
+        return ScheduleRegisterResponse(
+            success=True,
+            message=f"Lecture '{payload.subject}' scheduled with randomized trigger offset +{slot.random_offset_min}m.",
+            slot=slot.to_dict()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to schedule lecture slot: {str(e)}")
+
+@router.get("/schedule/slots")
+def list_scheduled_slots():
+    """Lists all active timetable slots and their randomized trigger status."""
+    return {
+        "success": True,
+        "total_slots": len(schedule_manager.scheduled_slots),
+        "slots": schedule_manager.get_all_slots()
+    }
+
+@router.post("/schedule/trigger/{slot_id}")
+def trigger_slot_now(slot_id: str):
+    """Forces an immediate randomized trigger firing for testing or simulation."""
+    slot = schedule_manager.trigger_now(slot_id)
+    if not slot:
+        raise HTTPException(status_code=404, detail=f"Slot '{slot_id}' not found.")
+    return {
+        "success": True,
+        "message": f"Randomized capture event fired for slot '{slot_id}'.",
+        "slot": slot.to_dict()
+    }
 
 
 # ================= PHASE 3: ANTI-SPOOFING & MULTI-SENSOR FUSION =================

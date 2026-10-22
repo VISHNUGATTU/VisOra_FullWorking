@@ -133,7 +133,98 @@ class NeuralService {
       return { success: false, error: err.message };
     }
   }
+
+  /**
+   * Registers a lecture slot with the APScheduler Automation Module (Patent Claim 1c, 3).
+   */
+  async registerScheduleSlot({ slotId, subject, branch, year, section, startTime, endTime, minOffsetMin, maxOffsetMin, minPresenceDurationMin, room, runRelativeSeconds }) {
+    try {
+      const payload = {
+        slot_id: String(slotId),
+        subject: String(subject),
+        branch: String(branch),
+        year: Number(year),
+        section: String(section),
+        start_time: startTime || "09:00",
+        end_time: endTime || "10:00",
+        min_offset_min: minOffsetMin || 10,
+        max_offset_min: maxOffsetMin || 25,
+        min_presence_duration_min: minPresenceDurationMin || 15,
+        room: room || "ROOM_101",
+        run_relative_seconds: runRelativeSeconds || null
+      };
+
+      const response = await fetch(`${this.baseUrl}/api/v1/schedule/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      return { success: response.ok, data };
+    } catch (err) {
+      console.warn("[NeuralService] Failed to register lecture schedule with APScheduler:", err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Retrieves all scheduled lecture slots and their randomized trigger states.
+   */
+  async getScheduledSlots() {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/schedule/slots`);
+      const data = await response.json();
+      return { success: response.ok, data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Forces an immediate randomized capture trigger execution.
+   */
+  async triggerSlotCapture(slotId) {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/schedule/trigger/${slotId}`, {
+        method: "POST"
+      });
+      const data = await response.json();
+      return { success: response.ok, data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Retrieves real-time student dwell times and presence duration breakdown (Patent Claim 1d, 4).
+   */
+  async getSessionPresence(sessionId) {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/audit/session/${sessionId}/presence`);
+      const data = await response.json();
+      return { success: response.ok, data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Forces adaptive reactivation of camera recognition for new entrants (Patent Claim 1d).
+   */
+  async reactivateSession(sessionId) {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/audit/session/${sessionId}/reactivate`, {
+        method: "POST"
+      });
+      const data = await response.json();
+      return { success: response.ok, data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
 }
 
 export const neuralService = new NeuralService();
 export default neuralService;
+

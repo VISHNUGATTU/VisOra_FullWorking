@@ -116,12 +116,16 @@ class TrackedFaceResult(BaseModel):
 class StreamFrameResponse(BaseModel):
     success: bool
     session_id: str
+    session_state: Optional[str] = "CAPTURE_ACTIVE"
     frame_index: int
     is_detection_frame: bool
+    is_reactivation_frame: Optional[bool] = False
+    reactivation_count: Optional[int] = 0
     tracked_faces_count: int
     tracked_faces: List[TrackedFaceResult]
     verified_students_count: int
     processing_time_ms: float
+    randomized_trigger: Optional[Dict[str, Any]] = None
 
 class SessionCreatePayload(BaseModel):
     session_id: str
@@ -129,6 +133,8 @@ class SessionCreatePayload(BaseModel):
     branch: Optional[str] = ""
     section: Optional[str] = ""
     year: Optional[int] = None
+    min_presence_duration_seconds: Optional[int] = 900
+    monitoring_duration_seconds: Optional[int] = 2400
 
 class SessionSummaryResponse(BaseModel):
     session_id: str
@@ -136,11 +142,48 @@ class SessionSummaryResponse(BaseModel):
     branch: str
     section: str
     year: Optional[int]
+    session_state: Optional[str] = "CONSOLIDATED"
     total_frames_processed: int
     present_count: int
     spoof_flags_count: int = 0
+    transient_rejected_count: Optional[int] = 0
+    reactivations_triggered: Optional[int] = 0
+    min_presence_duration_seconds: Optional[int] = 900
     present_students: List[Dict[str, Any]]
     flagged_spoofs: List[Dict[str, Any]] = []
+    transient_rejects: Optional[List[Dict[str, Any]]] = []
+
+# ================= PHASE 2 & 3: RANDOMIZED SCHEDULER & PRESENCE SCHEMAS =================
+
+class ScheduleRegisterPayload(BaseModel):
+    slot_id: str = Field(..., description="Unique timetable slot ID")
+    subject: str = Field(..., description="Course or lecture title")
+    branch: str = Field(..., description="Department, e.g. CSE-DS")
+    year: int = Field(..., description="Year of study (1-4)")
+    section: str = Field(..., description="Section, e.g. B")
+    start_time: str = Field(..., description="Slot start time (HH:MM), e.g. 09:00")
+    end_time: str = Field(..., description="Slot end time (HH:MM), e.g. 10:00")
+    min_offset_min: Optional[int] = Field(10, description="Minimum randomized trigger delay in minutes")
+    max_offset_min: Optional[int] = Field(25, description="Maximum randomized trigger delay in minutes")
+    min_presence_duration_min: Optional[int] = Field(15, description="Required minimum dwell time in minutes")
+    room: Optional[str] = Field("ROOM_101", description="Assigned lecture room")
+    run_relative_seconds: Optional[int] = Field(None, description="Fast-forward trigger offset in seconds (for test/simulation)")
+
+class ScheduleRegisterResponse(BaseModel):
+    success: bool
+    message: str
+    slot: Dict[str, Any]
+
+class PresenceBreakdownResponse(BaseModel):
+    success: bool
+    session_id: str
+    session_state: str
+    total_tracked: int
+    on_time_count: int
+    late_qualified_count: int
+    late_monitoring_count: int
+    min_presence_duration_seconds: int
+    students: List[Dict[str, Any]]
 
 # ================= PHASE 3: ANTI-SPOOFING & FUSION SCHEMAS =================
 
