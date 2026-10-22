@@ -10,6 +10,7 @@ __pycache__/
 .venv/
 venv/
 *.onnx
+!engine/models/buffalo_s/*.onnx
 engine/data/cache/
 engine/data/index/*.bin
 

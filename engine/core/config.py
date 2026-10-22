@@ -4,9 +4,11 @@ from pathlib import Path
 # Base Paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
+MODELS_DIR = BASE_DIR / "models"
 INDEX_DIR = DATA_DIR / "index"
 CACHE_DIR = DATA_DIR / "cache"
 
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
 INDEX_DIR.mkdir(parents=True, exist_ok=True)
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -16,9 +18,15 @@ class Config:
     VERSION: str = "1.0.0"
     PATENT_REF: str = "Indian Patent App No: 202641036876"
 
+    # Directory Paths
+    BASE_DIR: Path = BASE_DIR
+    DATA_DIR: Path = DATA_DIR
+    MODELS_DIR: Path = MODELS_DIR
+
     # InsightFace & Model Settings
     # 'buffalo_s' provides det_500m (SCRFD/RetinaFace fast) + w600k_mbf (ArcFace 512D)
     MODEL_NAME: str = os.getenv("VISORA_MODEL_NAME", "buffalo_s")
+    INSIGHTFACE_ROOT: str = os.getenv("INSIGHTFACE_ROOT", str(BASE_DIR))
     DET_SIZE: tuple = (320, 320)
     EMBEDDING_DIM: int = 512
     EXECUTION_PROVIDERS: list = ["CPUExecutionProvider"]

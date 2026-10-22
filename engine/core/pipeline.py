@@ -16,9 +16,10 @@ class NeuralPipeline:
     """
 
     def __init__(self):
-        print(f"[*] Initializing InsightFace pipeline with model '{config.MODEL_NAME}' on {config.EXECUTION_PROVIDERS}...")
+        print(f"[*] Initializing InsightFace pipeline with model '{config.MODEL_NAME}' from root '{config.INSIGHTFACE_ROOT}' on {config.EXECUTION_PROVIDERS}...")
         self.app = insightface.app.FaceAnalysis(
             name=config.MODEL_NAME,
+            root=config.INSIGHTFACE_ROOT,
             providers=config.EXECUTION_PROVIDERS,
             allowed_modules=["detection", "recognition"]
         )
