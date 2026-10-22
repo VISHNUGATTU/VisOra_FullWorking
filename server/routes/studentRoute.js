@@ -12,6 +12,7 @@ import {
   getStudentDashboard,
   getStudentHomeData,
   getAttendanceHistory,
+  disputeAttendance,
   getStudentFullSchedule,
   updateStudentPassword,
   updateStudentSettings,
@@ -43,6 +44,7 @@ studentRouter.get("/profile", studentAuth, getStudentProfile);
 studentRouter.get("/dashboard", studentAuth, getStudentDashboard);
 studentRouter.get("/home-data", studentAuth, getStudentHomeData);
 studentRouter.get("/history", studentAuth, getAttendanceHistory);
+studentRouter.post("/dispute-attendance", studentAuth, disputeAttendance);
 studentRouter.get("/full-schedule", studentAuth, getStudentFullSchedule);
 studentRouter.put("/update-password", studentAuth, updateStudentPassword);
 studentRouter.put("/settings", studentAuth, updateStudentSettings);

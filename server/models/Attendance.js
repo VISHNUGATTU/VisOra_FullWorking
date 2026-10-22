@@ -20,6 +20,8 @@ const attendanceSchema = new mongoose.Schema(
     branch: { type: String, required: true },
     year: { type: Number, required: true },
     section: { type: String, required: true },
+    subject: { type: String, default: "" },
+    type: { type: String, default: "Lecture" },
 
     // 🔥 SPACE SAVER: We ONLY store students who are Absent.
     absentees: [

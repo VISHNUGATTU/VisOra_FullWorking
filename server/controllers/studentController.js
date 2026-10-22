@@ -1,6 +1,7 @@
 import Student from "../models/Student.js";
 import Attendance from "../models/Attendance.js";
 import FacultySchedule from "../models/FacultySchedule.js";
+import Notification from "../models/Notification.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
@@ -641,24 +642,132 @@ export const getAttendanceHistory = async (req, res) => {
   try {
     const studentId = req.userId;
 
-    // Find records where this student was marked absent
-    const history = await Attendance.find({
-      absentees: studentId
+    const student = await Student.findById(studentId).select("branch year section rollno name").lean();
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    const studentYear = Number(student.year);
+
+    // Find ALL attendance records for this student's class (or where student was specifically recorded as absentee)
+    const records = await Attendance.find({
+      $or: [
+        { branch: student.branch, year: studentYear, section: student.section },
+        { absentees: studentId }
+      ]
     })
-    .sort({ date: -1 }) // Show most recent absences first
-    .select("date subject facultyId type")
-    .populate("facultyId", "name") 
+    .sort({ date: -1 })
+    .populate("facultyId", "name mail image")
     .lean();
 
-    const formattedHistory = history.map(record => ({
-      id: record._id,
-      date: record.date,
-      subject: record.subject,
-      type: record.type || "Lecture",
-      faculty: record.facultyId?.name || "Faculty"
-    }));
+    const formattedHistory = records.map((record) => {
+      const isAbsent = Array.isArray(record.absentees) &&
+        record.absentees.some((absId) => absId.toString() === studentId.toString());
 
-    res.json({ success: true, history: formattedHistory });
+      const status = isAbsent ? "Absent" : "Present";
+      const mode = record.consolidationMode || (record.isConsolidated ? "NEURAL_AUTO" : "MANUAL_OVERRIDE");
+
+      let modeLabel = "Manual Faculty";
+      if (mode === "NEURAL_AUTO") modeLabel = "Neural 512D ArcFace";
+      else if (mode === "EOD_AUTO_COMMIT") modeLabel = "EOD Autonomous";
+
+      return {
+        id: record._id,
+        date: record.date,
+        subject: record.subject || "Class Lecture",
+        type: record.type || "Lecture",
+        faculty: record.facultyId?.name || "Faculty",
+        facultyMail: record.facultyId?.mail || "",
+        facultyId: record.facultyId?._id || null,
+        status,
+        mode,
+        modeLabel,
+        isBiometricVerified: status === "Present" && mode === "NEURAL_AUTO",
+        cryptographicSignature: record.cryptographicSignature || "",
+        patentRef: record.patentRef || "202641036876"
+      };
+    });
+
+    const totalSessions = formattedHistory.length;
+    const totalPresent = formattedHistory.filter((r) => r.status === "Present").length;
+    const totalAbsent = formattedHistory.filter((r) => r.status === "Absent").length;
+    const biometricVerifiedCount = formattedHistory.filter((r) => r.isBiometricVerified).length;
+    const percentage = totalSessions > 0 ? Number(((totalPresent / totalSessions) * 100).toFixed(1)) : 100;
+
+    res.json({
+      success: true,
+      summary: {
+        totalSessions,
+        totalPresent,
+        totalAbsent,
+        biometricVerifiedCount,
+        percentage
+      },
+      history: formattedHistory
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/* ============================
+   DISPUTE ATTENDANCE
+============================ */
+export const disputeAttendance = async (req, res) => {
+  try {
+    const studentId = req.userId;
+    const { attendanceId, reason } = req.body;
+
+    if (!attendanceId) {
+      return res.status(400).json({ success: false, message: "Attendance record ID is required." });
+    }
+
+    const student = await Student.findById(studentId).select("name rollno branch year section");
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const attendance = await Attendance.findById(attendanceId).populate("facultyId", "name mail _id");
+    if (!attendance) return res.status(404).json({ success: false, message: "Attendance record not found" });
+
+    const facultyTargetId = attendance.facultyId?._id || attendance.facultyId;
+
+    // Create Notification for the faculty
+    const newNotification = await Notification.create({
+      title: `Attendance Dispute: ${student.name} (${student.rollno})`,
+      message: `${student.name} (${student.rollno}, ${student.branch} Year ${student.year}-${student.section}) disputed their absence for "${attendance.subject || 'Lecture'}" on ${new Date(attendance.date).toLocaleDateString()}. Claim/Reason: "${reason || 'Student claimed presence during session.'}"`,
+      type: "Warning",
+      sender: {
+        id: student._id,
+        role: "Student",
+        name: student.name
+      },
+      recipient: {
+        userId: String(facultyTargetId),
+        role: "Faculty"
+      },
+      metadata: {
+        attendanceId: attendance._id,
+        studentId: student._id,
+        rollno: student.rollno,
+        date: attendance.date,
+        subject: attendance.subject,
+        reason: reason || "Claimed presence during session."
+      }
+    });
+
+    // 📝 Log Audit Action
+    await logAction({
+      actionType: "ATTENDANCE_DISPUTE",
+      title: "Student Raised Attendance Dispute",
+      message: `${student.name} (${student.rollno}) disputed absence for ${attendance.subject}`,
+      actor: { userId: student._id, role: "Student", name: student.name, ipAddress: req.ip },
+      metadata: { attendanceId: attendance._id, facultyId: facultyTargetId }
+    });
+
+    res.json({
+      success: true,
+      message: "Dispute submitted! Your faculty member has been notified for review.",
+      notification: newNotification
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
