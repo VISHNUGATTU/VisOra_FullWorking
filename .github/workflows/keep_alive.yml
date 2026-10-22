@@ -12,12 +12,12 @@ jobs:
     steps:
       - name: Ping Node.js Backend Server
         run: |
-          if [ -n "${{ secrets.RENDER_SERVER_URL }}" ]; then
-            echo "Pinging Node.js Server: ${{ secrets.RENDER_SERVER_URL }}/health"
-            curl -s -f -m 20 "${{ secrets.RENDER_SERVER_URL }}/health" || echo "Server ping failed or waking up"
-          else
-            echo "RENDER_SERVER_URL secret not set. Skipping server ping."
+          SERVER_URL="${{ secrets.RENDER_SERVER_URL }}"
+          if [ -z "$SERVER_URL" ]; then
+            SERVER_URL="https://visora-server-w426.onrender.com"
           fi
+          echo "Pinging Node.js Server: $SERVER_URL/health"
+          curl -s -f -m 20 "$SERVER_URL/health" || echo "Server ping failed or waking up"
 
       - name: Ping Python Neural AI Engine
         run: |
