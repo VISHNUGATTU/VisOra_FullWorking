@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import Student from "../models/Student.js";
 import Faculty from "../models/Faculty.js";
 import FacultySchedule from "../models/FacultySchedule.js";
+import Admin from "../models/Admin.js";
 import connectDB from "../configs/db.js";
 
 const INDIAN_FIRST_NAMES = [
@@ -45,6 +46,26 @@ export async function seedMassiveInstitutionalData() {
 
   const hashedPassword = await bcrypt.hash("student123", 10);
   const hashedFacultyPass = await bcrypt.hash("faculty123", 10);
+
+  // ---------------------------------------------------------
+  // 0. SEED CHIEF ADMINISTRATOR
+  // ---------------------------------------------------------
+  console.log("\n[*] Seeding Institutional Administrator...");
+  const existingAdmin = await Admin.findOne({ mail: "admin@visora.edu" });
+  if (!existingAdmin) {
+    const hashedAdminPass = await bcrypt.hash("admin123", 10);
+    await Admin.create({
+      name: "Chief Administrator",
+      adminId: "ADM_VNR_001",
+      mail: "admin@visora.edu",
+      password1: hashedAdminPass,
+      password2: hashedAdminPass,
+      phone: "9848010000"
+    });
+    console.log("  [+] Created Chief Administrator: admin@visora.edu (Key 1: admin123 | Key 2: admin123)");
+  } else {
+    console.log("  [+] Administrator already exists: admin@visora.edu");
+  }
 
   // ---------------------------------------------------------
   // 1. SEED FACULTY MEMBERS
