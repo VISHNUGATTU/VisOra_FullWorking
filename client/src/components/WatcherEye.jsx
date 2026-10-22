@@ -2,101 +2,364 @@ import React from "react";
 
 const WatcherEye = () => {
   return (
-    <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none overflow-hidden">
+    <div
+      className="watcher-eye pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
+      aria-hidden="true"
+    >
       <svg
-        width="600"
-        height="400"
-        viewBox="0 0 200 150"
-        className="opacity-0 animate-eye-cycle" // Controls the full appear/disappear cycle
+        viewBox="0 0 600 400"
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMidYMid meet"
+        className="watcher-eye-svg"
       >
         <defs>
-          {/* GLOW FILTER */}
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+          <filter id="watcher-glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
             <feMerge>
-              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
 
-          {/* GRADIENT FOR IRIS */}
-          <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#818cf8" /> {/* Indigo-400 */}
-            <stop offset="100%" stopColor="#312e81" /> {/* Indigo-900 */}
+          <radialGradient id="watcher-iris" cx="45%" cy="40%" r="60%">
+            <stop offset="0%" stopColor="#ecfeff" />
+            <stop offset="18%" stopColor="#67e8f9" />
+            <stop offset="48%" stopColor="#0891b2" />
+            <stop offset="78%" stopColor="#1d4ed8" />
+            <stop offset="100%" stopColor="#172554" />
           </radialGradient>
-          
-          {/* CLIP PATH FOR EYELIDS (Blinking Effect) */}
-          <clipPath id="eyelid-clip">
-            <rect x="0" y="0" width="200" height="150" className="animate-blink-mask" />
+
+          <linearGradient id="watcher-outline" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#2563eb" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#67e8f9" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="#2563eb" stopOpacity="0.1" />
+          </linearGradient>
+
+          <linearGradient id="watcher-laser-gradient">
+            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0" />
+            <stop offset="50%" stopColor="#67e8f9" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+          </linearGradient>
+
+          <pattern id="watcher-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+            <path
+              d="M24 0H0V24"
+              fill="none"
+              stroke="#38bdf8"
+              strokeWidth="0.5"
+              strokeOpacity="0.12"
+            />
+          </pattern>
+
+          <clipPath id="watcher-eye-clip">
+            <rect
+              x="0"
+              y="0"
+              width="600"
+              height="400"
+              className="watcher-blink-mask"
+            />
           </clipPath>
         </defs>
 
-        {/* GROUP WITH CLIP PATH (Everything inside is masked by eyelids) */}
-        <g clipPath="url(#eyelid-clip)" filter="url(#glow)">
-          
-          {/* SCLERA (Eye Shape Outline) */}
-          <path
-            d="M 10,75 Q 100,10 190,75 Q 100,140 10,75"
-            fill="none"
-            stroke="#4f46e5" // Indigo-600
-            strokeWidth="1.5"
-            strokeOpacity="0.5"
-          />
-          
-          {/* TECH GRID LINES INSIDE EYE (Optional Detail) */}
-          <path d="M 10,75 L 190,75" stroke="#4f46e5" strokeWidth="0.5" strokeOpacity="0.2" />
-          <path d="M 100,10 L 100,140" stroke="#4f46e5" strokeWidth="0.5" strokeOpacity="0.2" />
+        <g className="watcher-eye-cycle">
+          <g clipPath="url(#watcher-eye-clip)">
+            {/* Technical rings */}
+            <circle
+              cx="300"
+              cy="200"
+              r="125"
+              fill="none"
+              stroke="#2563eb"
+              strokeWidth="1"
+              strokeOpacity="0.2"
+              strokeDasharray="3 9"
+              className="watcher-outer-ring"
+            />
 
-          {/* THE PUPIL (Moves Left/Right) */}
-          <g className="animate-scan">
-            {/* Outer Iris */}
-            <circle cx="100" cy="75" r="28" stroke="#6366f1" strokeWidth="1" fill="url(#irisGrad)" opacity="0.8" />
-            {/* Inner Pupil (Glowing Center) */}
-            <circle cx="100" cy="75" r="12" fill="#e0e7ff" />
-            {/* Scanning Laser Line */}
-            <rect x="98" y="47" width="4" height="56" fill="#a5b4fc" opacity="0.5" />
+            <circle
+              cx="300"
+              cy="200"
+              r="105"
+              fill="none"
+              stroke="#22d3ee"
+              strokeWidth="1"
+              strokeOpacity="0.25"
+              strokeDasharray="2 7"
+              className="watcher-inner-ring"
+            />
+
+            {/* Eye outline */}
+            <path
+              d="M75 200 Q300 30 525 200 Q300 370 75 200Z"
+              fill="#071326"
+              fillOpacity="0.45"
+              stroke="url(#watcher-outline)"
+              strokeWidth="1.6"
+            />
+
+            <path
+              d="M90 200 Q300 48 510 200 Q300 352 90 200Z"
+              fill="url(#watcher-grid)"
+              opacity="0.6"
+            />
+
+            <path
+              d="M75 200H525 M300 30V370"
+              stroke="#38bdf8"
+              strokeWidth="0.7"
+              strokeOpacity="0.18"
+              strokeDasharray="4 7"
+            />
+
+            {/* Moving iris */}
+            <g className="watcher-pupil">
+              <circle
+                cx="300"
+                cy="200"
+                r="68"
+                fill="#0891b2"
+                opacity="0.15"
+                filter="url(#watcher-glow)"
+              />
+
+              <circle
+                cx="300"
+                cy="200"
+                r="58"
+                fill="none"
+                stroke="#22d3ee"
+                strokeWidth="1.3"
+                strokeOpacity="0.75"
+              />
+
+              <circle
+                cx="300"
+                cy="200"
+                r="48"
+                fill="url(#watcher-iris)"
+                opacity="0.9"
+              />
+
+              <circle
+                cx="300"
+                cy="200"
+                r="37"
+                fill="none"
+                stroke="#cffafe"
+                strokeWidth="1"
+                strokeOpacity="0.45"
+                strokeDasharray="2 4"
+              />
+
+              <circle
+                cx="300"
+                cy="200"
+                r="29"
+                fill="none"
+                stroke="#e0f2fe"
+                strokeWidth="1"
+                strokeOpacity="0.5"
+              />
+
+              {Array.from({ length: 16 }, (_, i) => (
+                <line
+                  key={i}
+                  x1="300"
+                  y1="165"
+                  x2="300"
+                  y2="176"
+                  stroke="#ecfeff"
+                  strokeWidth="1"
+                  strokeOpacity="0.5"
+                  transform={`rotate(${i * 22.5} 300 200)`}
+                />
+              ))}
+
+              {/* Pupil */}
+              <circle
+                cx="300"
+                cy="200"
+                r="19"
+                fill="#020817"
+                stroke="#a5f3fc"
+                strokeWidth="1.5"
+              />
+
+              <circle
+                cx="300"
+                cy="200"
+                r="8"
+                fill="#ecfeff"
+                filter="url(#watcher-glow)"
+              />
+
+              <circle
+                cx="294"
+                cy="194"
+                r="3.5"
+                fill="#ffffff"
+              />
+            </g>
+
+            {/* Scanning laser */}
+            <g className="watcher-laser">
+              <rect
+                x="95"
+                y="198"
+                width="410"
+                height="2"
+                fill="url(#watcher-laser-gradient)"
+              />
+            </g>
+
+            {/* Eye corners */}
+            <g
+              fill="none"
+              stroke="#67e8f9"
+              strokeWidth="1.5"
+              strokeOpacity="0.7"
+            >
+              <path d="M75 200l13-7M75 200l13 7" />
+              <path d="M525 200l-13-7M525 200l-13 7" />
+            </g>
+          </g>
+
+          {/* Corner indicators */}
+          <g
+            fill="none"
+            stroke="#38bdf8"
+            strokeWidth="1"
+            strokeOpacity="0.4"
+          >
+            <path d="M120 115V100H145" />
+            <path d="M455 100H480V115" />
+            <path d="M120 285V300H145" />
+            <path d="M455 300H480V285" />
           </g>
         </g>
       </svg>
 
-      {/* CSS ANIMATIONS */}
       <style>{`
-        /* 1. MASTER CYCLE: Controls visibility (Total 10s loop) */
-        @keyframes eye-cycle {
-          0% { opacity: 0; transform: scale(0.9); }       /* Start Hidden */
-          10% { opacity: 1; transform: scale(1); }        /* Fade In */
-          80% { opacity: 1; transform: scale(1); }        /* Stay Visible */
-          90% { opacity: 0; transform: scale(1.1); }      /* Fade Out */
-          100% { opacity: 0; }                            /* Stay Hidden */
+        .watcher-eye-svg {
+          display: block;
+          max-width: 760px;
+          overflow: visible;
+          opacity: 0;
+          animation: watcher-visibility 10s ease-in-out infinite;
         }
 
-        /* 2. BLINK MASK: Controls the opening/closing of eyelids */
-        @keyframes blink-mask {
-          0%, 5% { height: 0px; y: 75; }                 /* Closed */
-          15% { height: 150px; y: 0; }                   /* Open */
-          75% { height: 150px; y: 0; }                   /* Stay Open */
-          85% { height: 0px; y: 75; }                    /* Close */
-          100% { height: 0px; y: 75; }                   /* Stay Closed */
+        .watcher-eye-cycle {
+          transform-origin: 300px 200px;
+          animation: watcher-scale 10s ease-in-out infinite;
         }
 
-        /* 3. SCAN: Controls the pupil movement */
-        @keyframes scan {
-          0%, 20% { transform: translateX(0); }          /* Center */
-          35% { transform: translateX(-40px); }          /* Look Left */
-          50% { transform: translateX(-40px); }          /* Hold Left */
-          65% { transform: translateX(40px); }           /* Look Right */
-          80% { transform: translateX(0); }              /* Back Center */
+        .watcher-blink-mask {
+          animation: watcher-blink 10s ease-in-out infinite;
         }
 
-        .animate-eye-cycle {
-          animation: eye-cycle 10s ease-in-out infinite;
+        .watcher-pupil {
+          transform-origin: 300px 200px;
+          animation: watcher-look 10s ease-in-out infinite;
         }
-        .animate-blink-mask {
-          animation: blink-mask 10s ease-in-out infinite;
+
+        .watcher-laser {
+          animation: watcher-scan 10s ease-in-out infinite;
         }
-        .animate-scan {
-          transform-origin: center;
-          animation: scan 10s ease-in-out infinite;
+
+        .watcher-outer-ring {
+          transform-origin: 300px 200px;
+          animation: watcher-rotate 30s linear infinite;
+        }
+
+        .watcher-inner-ring {
+          transform-origin: 300px 200px;
+          animation: watcher-rotate-reverse 22s linear infinite;
+        }
+
+        @keyframes watcher-visibility {
+          0%, 100% { opacity: 0; }
+          10% { opacity: 0.35; }
+          20%, 75% { opacity: 0.7; }
+          90% { opacity: 0; }
+        }
+
+        @keyframes watcher-scale {
+          0%, 100% { transform: scale(0.94); }
+          12%, 80% { transform: scale(1); }
+          90% { transform: scale(1.04); }
+        }
+
+        @keyframes watcher-blink {
+          0%, 5%, 90%, 100% {
+            height: 0px;
+            y: 200px;
+          }
+          15%, 78% {
+            height: 400px;
+            y: 0px;
+          }
+          85% {
+            height: 0px;
+            y: 200px;
+          }
+        }
+
+        @keyframes watcher-look {
+          0%, 20%, 80%, 100% { transform: translateX(0); }
+          35%, 45% { transform: translateX(-24px); }
+          60%, 70% { transform: translateX(24px); }
+        }
+
+        @keyframes watcher-scan {
+          0%, 20%, 80%, 100% {
+            opacity: 0;
+            transform: translateY(-30px);
+          }
+          30% {
+            opacity: 0.8;
+            transform: translateY(-15px);
+          }
+          50% {
+            opacity: 0.55;
+            transform: translateY(20px);
+          }
+          70% {
+            opacity: 0.8;
+            transform: translateY(-5px);
+          }
+        }
+
+        @keyframes watcher-rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        @keyframes watcher-rotate-reverse {
+          from { transform: rotate(360deg); }
+          to { transform: rotate(0deg); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .watcher-eye-svg,
+          .watcher-eye-cycle,
+          .watcher-blink-mask,
+          .watcher-pupil,
+          .watcher-laser,
+          .watcher-outer-ring,
+          .watcher-inner-ring {
+            animation: none !important;
+          }
+
+          .watcher-eye-svg {
+            opacity: 0.35;
+          }
+
+          .watcher-blink-mask {
+            height: 400px;
+            y: 0px;
+          }
         }
       `}</style>
     </div>
