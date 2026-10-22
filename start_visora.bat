@@ -11,8 +11,8 @@ start "VisOra - Python Neural Engine (Port 8000)" cmd /k "cd engine && python ma
 
 timeout /t 2 /nobreak >nul
 
-echo [2/3] Starting Node.js / Express Backend (Port 5000)...
-start "VisOra - Node Server (Port 5000)" cmd /k "cd server && npm run server"
+echo [2/3] Starting Node.js / Express Backend (Port 6446)...
+start "VisOra - Node Server (Port 6446)" cmd /k "cd server && npm run server"
 
 timeout /t 2 /nobreak >nul
 
@@ -23,7 +23,7 @@ echo.
 echo ======================================================================
 echo  All services launched in separate windows!
 echo  - Frontend Web UI:    http://localhost:5173
-echo  - Node.js Backend:    http://localhost:5000
+echo  - Node.js Backend:    http://localhost:6446
 echo  - Python Neural Core: http://localhost:8000 (Swagger: /docs)
 echo ======================================================================
 pause

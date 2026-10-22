@@ -1,221 +1,189 @@
-# VisOra: Neural Identity Engine (Indian Patent App No: 202641036876)
+# VisOra: Autonomous Neural Identity & Attendance Synchronization Platform
 
-VisOra is an enterprise-grade AI-powered **Invisible Auditor** and neural identity verification platform published by the **Indian Patent Office (App No: 202641036876)**. Moving beyond conventional facial recognition, VisOra combines continuous optical tracking, capillary pulse liveness detection (rPPG), and multi-sensor fusion to eradicate proxy attendance and biometric spoofing at massive scale.
-
----
-
-## 🧠 Patented Core Architecture
-
-### 1. InsightFace Neural Core (RetinaFace + ArcFace)
-- **512-Dimensional Deep Embeddings**: Sub-millisecond facial feature vectors extracted via ArcFace backbone normalized with unit $L_2$ norm.
-- **FAISS Vector Search**: `IndexFlatIP` vector index providing cosine similarity search in $<2\text{ ms}$ over tens of thousands of student biometric vectors.
-
-### 2. CPU Optimization & Continuous Optical Tracking
-- **Adaptive Dynamic Tiling (SAHI)**: Slices high-resolution (1080p / 4K) surveillance frames into overlapping sub-patches with automated coordinate re-mapping and seam Non-Maximum Suppression (NMS) to detect distant, small classroom faces without GPU degradation.
-- **7-State Bounding-Box Kalman Filter**: Predicts and tracks facial bounding boxes $[x, y, s, r, \dot{x}, \dot{y}, \dot{s}]$ at **>5,000x CPU throughput** (~0.08 ms prediction vs ~460 ms neural detection).
-- **Hungarian Track Association**: Optimal bipartite matching with quality-aware Laplacian sharpness filtering and persistent track identity locks.
-
-### 3. Dual-Layer Anti-Spoofing & Multi-Sensor Fusion
-- **Remote Photoplethysmography (rPPG)**: Decomposes skin chrominance signals (CHROM) to extract capillary blood volume pulse (BVP). Computes cardiac pulse via Butterworth bandpass filtering (45–150 BPM) and FFT spectral concentration signal-to-noise ratio (SNR).
-- **Multi-Sensor Fusion Engine**: Fuses Face Similarity ($40\%$), rPPG Vitality ($35\%$), Thermal Skin Temp ($15\%$), and PIR Motion ($10\%$) with hard veto logic that immediately rejects paper photo attacks, digital replay attacks, and abnormal surface temperatures ($<31^\circ\text{C}$ or $>41.5^\circ\text{C}$).
-
-### 4. Seamless Node.js & React 19 Integration
-- **Biometric Vector Auto-Sync**: MongoDB student records auto-generate and synchronize FAISS face vectors upon student photo registration or batch admin sync.
-- **Live Biometric HUD Scanner**: Real-time faculty attendance viewport with holographic reticles, live BPM heart rate counters, and 1-click batch attendance submission.
+> **Indian Patent Application No:** `202641036876` (Form 2, The Patents Act 1970)  
+> **Title of the Invention:** *VisOra: An AI-Based Automated Smart Attendance Recognition and Synchronization System*  
+> **Applicants & Inventors:** VNR Vignana Jyothi Institute of Engineering and Technology (VNRVJIET)  
+> *Inventors:* Gullapalli Sathar, N Sunanda, Pagadala Veeranjaneyulu, Y. Gayathri Karthikeya, G. Vishnu Phani  
 
 ---
 
-## Tech Stack
+## 🏛️ Executive Summary
 
-### Frontend
-- **React 19** - Modern JavaScript library for building user interfaces
-- **Vite** - Fast build tool and development server
-- **Tailwind CSS** - Utility-first CSS framework
-- **Framer Motion** - Animation library for React
-- **React Router DOM** - Declarative routing for React
-- **Axios** - HTTP client for API requests
-- **React Hot Toast** - Toast notifications
-- **Recharts** - Chart library for data visualization
-- **Three.js** - 3D graphics library
-- **Lucide React** - Icon library
+**VisOra** is an enterprise-grade AI attendance recognition and automated synchronization platform. Operating as an **Invisible Auditor**, VisOra eradicates manual attendance roll calls, proxy fraud, and biometric spoof attacks across massive institutional populations.
 
-### Backend
-- **Node.js** - JavaScript runtime
-- **Express.js** - Web application framework
-- **MongoDB** - NoSQL database
-- **Mongoose** - MongoDB object modeling
-- **JWT** - JSON Web Tokens for authentication
-- **bcrypt** - Password hashing
-- **Cloudinary** - Cloud-based image and video management
-- **Multer** - Middleware for handling file uploads
-- **CORS** - Cross-Origin Resource Sharing
+Moving fundamentally beyond legacy 128D facial recognition models, VisOra integrates a **5-Phase Autonomous Architecture** utilizing **512-Dimensional ArcFace embeddings**, **FAISS vector acceleration**, **SAHI adaptive crowd slicing**, **7-state Kalman tracking**, **capillary rPPG pulse liveness detection**, **stochastic timetable triggers**, **adaptive latecomer reactivation**, **deferred institutional portal consolidation**, and **real-time Telegram reporting bots**.
 
-## Prerequisites
+---
 
-Before running this application, make sure you have the following installed:
+## 🔬 5-Phase Patented Architecture (Indian Patent Ref: 202641036876)
 
-- **Node.js** (version 16 or higher)
-- **npm** or **yarn**
-- **MongoDB** (local installation or cloud service like MongoDB Atlas)
-- **Git**
-
-## Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd VisOra
-   ```
-
-2. **Install dependencies for both client and server**
-   ```bash
-   # Install client dependencies
-   cd client
-   npm install
-
-   # Install server dependencies
-   cd ../server
-   npm install
-
-   # Go back to root
-   cd ..
-   ```
-
-3. **Environment Setup**
-
-   Create `.env` files in both `client` and `server` directories.
-
-   **Server `.env` file:**
-   ```env
-   PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/visora
-   JWT_SECRET=your_jwt_secret_key
-   FRONTEND_URL=http://localhost:5173
-   CLOUDINARY_NAME=your_cloudinary_name
-   CLOUDINARY_API_KEY=your_cloudinary_api_key
-   CLOUDINARY_SECRET_KEY=your_cloudinary_secret_key
-   ```
-
-   **Client `.env` file:**
-   ```env
-   VITE_API_URL=http://localhost:5000/api
-   ```
-
-4. **Start MongoDB**
-   Make sure MongoDB is running on your system.
-
-## Usage
-
-### Development (Start All 3 Services)
-
-1. **Start the Python Neural Engine (FastAPI + FAISS + InsightFace)**:
-   ```bash
-   python engine/main.py
-   # Runs on http://localhost:8000 (Swagger docs at http://localhost:8000/docs)
-   ```
-
-2. **Start the Node.js / Express Backend**:
-   ```bash
-   cd server
-   npm run server
-   # Runs on http://localhost:5000
-   ```
-
-3. **Start the React Frontend**:
-   ```bash
-   cd client
-   npm run dev
-   # Runs on http://localhost:5173
-   ```
-
-4. **Access the Application**:
-   Open your browser and navigate to `http://localhost:5173`
-
-### Production
-
-1. **Build the frontend**
-   ```bash
-   cd client
-   npm run build
-   ```
-
-2. **Start the production server**
-   ```bash
-   cd server
-   npm start
-   ```
-
-## API Endpoints
-
-### Authentication
-- `POST /api/admin/login` - Admin login
-- `POST /api/faculty/login` - Faculty login
-- `POST /api/student/login` - Student login
-
-### Admin Routes
-- `GET /api/admin/dashboard` - Get dashboard data
-- `POST /api/admin/add-student` - Add new student
-- `PUT /api/admin/update-student/:id` - Update student
-- `DELETE /api/admin/delete-student/:id` - Delete student
-- `POST /api/admin/add-faculty` - Add new faculty
-- `PUT /api/admin/update-faculty/:id` - Update faculty
-- `DELETE /api/admin/delete-faculty/:id` - Delete faculty
-- `POST /api/admin/promote-year` - Promote students to next year
-
-### Faculty Routes
-- `GET /api/faculty/dashboard` - Get faculty dashboard
-- `POST /api/faculty/add-schedule` - Add class schedule
-- `GET /api/faculty/schedule` - Get faculty schedule
-- `POST /api/faculty/mark-attendance` - Mark attendance
-
-### Student Routes
-- `GET /api/student/dashboard` - Get student dashboard
-- `GET /api/student/attendance-history` - Get attendance history
-- `GET /api/student/schedule` - Get student schedule
-
-## Project Structure
-
-```
-VisOra/
-├── client/                 # Frontend React application
-│   ├── public/            # Static assets
-│   ├── src/
-│   │   ├── components/    # Reusable React components
-│   │   ├── pages/         # Page components
-│   │   ├── context/       # React context for state management
-│   │   └── assets/        # Images and other assets
-│   ├── package.json
-│   └── vite.config.js
-├── server/                 # Backend Node.js application
-│   ├── configs/           # Configuration files
-│   ├── controllers/       # Route controllers
-│   ├── middlewares/       # Custom middlewares
-│   ├── models/            # MongoDB models
-│   ├── routes/            # API routes
-│   ├── server.js          # Main server file
-│   └── package.json
-├── .gitignore
-└── README.md
+```mermaid
+flowchart TD
+    A["Timetable Slot (APScheduler)"] -->|"Stochastic Offset T = Tstart + U(10m, 25m)"| B["Randomized Trigger Capture"]
+    B --> C["High-Res Surveillance Stream (1080p / 4K)"]
+    C --> D["Adaptive Dynamic Tiling (SAHI Overlap Slices)"]
+    D --> E["InsightFace Neural Pipeline (SCRFD 500M + ArcFace 512D)"]
+    E --> F["FAISS Vector Index (IndexFlatIP < 1.5ms Search)"]
+    F --> G["7-State Optical Kalman Tracker (Bounding Motion Model)"]
+    G --> H["Dual-Layer Anti-Spoofing (CHROM rPPG Pulse + Multi-Sensor Fusion)"]
+    H -->|"Doorway Influx Detected"| I["Adaptive Reactivation & Dwell-Time Engine (t >= 15m)"]
+    I --> J["In-Memory Deferred Session Buffer (Claim 6)"]
+    J -->|"End of Period / Faculty Review"| K["Institutional Web Portal Checkbox Auto-Ticking (Claim 1e, 10f)"]
+    K -->|"23:59 EOD Deadline"| L["EOD Auto-Commit Worker (Claim 7, 10h)"]
+    K -->|"Real-Time Dispatch"| M["Automated Telegram Reporting Bot (Claim 1f, 8, 10g)"]
+    L --> M
+    M --> N["Administrative & Faculty Telegram Channel (Patent Fig. 4)"]
 ```
 
-## Contributing
+---
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+### 📍 Phase 1: High-Density Neural Vision & Multi-Sensor Anti-Spoofing (Claims 1a, 1b, 2, 9, 10a, 10b)
+- **ArcFace 512D Embeddings:** Generates 512-dimensional unit feature vectors invariant to illumination, pose variation, and occlusions.
+- **FAISS Vector Acceleration:** Employs `IndexFlatIP` (Inner Product) search achieving $<1.5\text{ ms}$ search times across tens of thousands of student embeddings with strict cosine thresholding ($\ge 0.38$).
+- **Adaptive Dynamic Tiling (SAHI):** Slices high-resolution 1080p/4K classroom frames into overlapping dynamic sub-patches ($640\times 640$, $20\%$ overlap) with coordinate translation and cross-seam Non-Maximum Suppression (NMS), detecting small, distant faces in dense lecture halls.
+- **7-State Optical Kalman Tracker:** High-throughput bounding box state model $[x, y, s, r, \dot{x}, \dot{y}, \dot{s}]$ running at **>5,000x CPU throughput** (~0.08 ms prediction) with Hungarian bipartite track association.
+- **Capillary Pulse rPPG (Remote Photoplethysmography):** Decomposes facial skin chrominance (CHROM method) across temporal RGB buffers. Extracts cardiac blood volume pulse (BVP) via Butterworth bandpass filtering (0.75–2.67 Hz / 45–160 BPM) and FFT signal-to-noise ratio (SNR) peak concentration to defeat static photos and digital screen replays.
+- **Multi-Sensor Telemetry Fusion:** Fuses Facial ArcFace ($40\%$), rPPG Vitality ($35\%$), Thermal Temperature ($15\%$), and PIR Motion ($10\%$) with hard veto triggers that reject abnormal surface temperatures ($<31^\circ\text{C}$ or $>41.5^\circ\text{C}$).
 
-## License
+---
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### 🎲 Phase 2: APScheduler Stochastic Timetable Trigger Engine (Claims 1c, 3, 10c)
+- **Unpredictable Anti-Proxy Capture:** Automates attendance capture via a randomized trigger offset:
+  $$T_{\text{trigger}} = T_{\text{start}} + \mathcal{U}(t_{\min}, t_{\max})$$
+  (Default: 10 to 25 minutes into the scheduled period).
+- **Fraud Defeat:** Eliminates proxy manipulation, student attendance buddy rings, and premeditated early departures by maintaining an unpredictable capture window.
+- **Background Automation:** Managed asynchronously via `APScheduler` with dynamic queue scheduling, manual override capabilities, and automated lifecycle callback binding.
 
-## Support
+---
 
-For support, email gattuvishnuphani@gmail.com or join our Slack channel.
+### ⚡ Phase 3: Adaptive Reactivation & Dwell-Time Presence Duration (Claims 1d, 4, 10d)
+- **Stateful Lifecycle Management:** Sessions transition deterministically through:
+  `SCHEDULED` $\rightarrow$ `CAPTURE_ACTIVE` $\rightarrow$ `MONITORING_WINDOW` $\leftrightarrow$ `REACTIVATED` $\rightarrow$ `CONSOLIDATING` $\rightarrow$ `CONSOLIDATED`.
+- **Adaptive Reactivation on Doorway Influx:** Continuously monitors peripheral entry zones; automatically wakes the neural detection engine from low-power tracking when new unindexed individuals enter.
+- **Continuous Dwell-Time Qualification:** Enforces a minimum continuous presence threshold:
+  $$\text{Dwell Time} = t_{\text{last\_seen}} - t_{\text{first\_seen}} \ge \tau_{\text{presence}} \quad (15\text{ minutes})$$
+- Distinguishes authentic latecomers (`LATE_ACCEPTED`) from transient passersby (`REJECTED_TRANSIENT`).
 
-## Acknowledgments
+---
 
-- Icons by [Lucide React](https://lucide.dev/)
-- UI components inspired by modern design systems
-- Special thanks to the open-source community
+### 📋 Phase 4: Deferred Consolidation & Web Portal Checkbox Auto-Ticking (Claims 1e, 6, 7, 10f, 10h)
+- **Deferred In-Memory Buffer (Claim 6):** Accumulates authenticated student tracks in memory during instructional hours, bypassing high-frequency transactional commits against MongoDB and preventing database bottlenecking.
+- **Autonomous Binary Checkbox Auto-Ticking (Claims 1e & 10f):** When faculty opens the attendance portal, verified students are mapped directly to the institutional student roster, automatically selecting binary attendance checkboxes (`Present` / `Absent`).
+- **Biometric Badges & Manual Override:** Displays `✨ AI Verified (SCRFD 512D + rPPG)` with dwell-time telemetry, allowing faculty to review and manually override checkboxes before finalization.
+- **End-of-Day (EOD) Auto-Finalization (Claims 7 & 10h):** A background worker (`server/workers/eodWorker.js`) executes at `23:59:00` daily to auto-commit any unfinalized lecture attendance lacking manual override.
+
+---
+
+### 🤖 Phase 5: Real-Time Telegram Reporting Bot Module (Claims 1f, 8, 10g)
+- **Interactive Markdown Cards (Patent Figure 4):** Dispatches structured, publication-grade reports via the Telegram Bot API (`server/services/telegramService.js`):
+  - Subject, class section, faculty member, date, and lecture time slot.
+  - Present vs. Absent counts and aggregate percentage metrics.
+  - Formatted monospace itemization of absent student roll numbers.
+  - Stochastic trigger timestamp and randomized offset (+X min).
+  - Liveness verification score (Capillary rPPG + thermal thresholding).
+  - Cryptographic verification signature (SHA-256) for immutable audit trails.
+- **Autonomous & Simulated Modes:** Delivers to live Telegram channels when configured, or logs formatted cards in simulation mode during local development.
+
+---
+
+## 💻 Microservices Architecture & Port Mapping
+
+| Service | Technology | Port | Responsibilities |
+| :--- | :--- | :---: | :--- |
+| **Python Neural Engine** | FastAPI, InsightFace, FAISS, PyTorch, NumPy | `8000` | 512D ArcFace embeddings, FAISS vector search, SAHI tiling, rPPG pulse, APScheduler, session buffers. |
+| **Node.js Express Server** | Express 5, Mongoose, MongoDB Atlas, Cloudinary | `6446` | REST API, JWT auth, timetable rosters, Telegram bot dispatch, EOD finalization cron, audit logging. |
+| **Frontend Web Portal** | React 19, Vite, Tailwind CSS, Lucide React, Recharts | `5173` | Admin Command Center, Faculty Live HUD Reticle Scanner, Manual Checkbox Portal, Student Dashboard. |
+
+---
+
+## 🚀 One-Click Quickstart
+
+### Windows (Recommended)
+
+Run the automated launcher batch or PowerShell script from the project root:
+
+```cmd
+:: Batch launcher (opens 3 clean command windows)
+start_visora.bat
+```
+*or using PowerShell:*
+```powershell
+.\start_visora.ps1
+```
+
+---
+
+### Manual Launch
+
+#### 1. Python Neural Identity Engine
+```bash
+cd engine
+pip install -r requirements.txt
+python main.py
+# Online at http://localhost:8000 (Interactive Swagger Docs at /docs)
+```
+
+#### 2. Node.js Express Backend
+```bash
+cd server
+npm install
+npm run server
+# Online at http://localhost:6446
+```
+
+#### 3. React 19 Client Web App
+```bash
+cd client
+npm install
+npm run dev
+# Online at http://localhost:5173
+```
+
+---
+
+## 🧪 Comprehensive Verification Suite
+
+VisOra includes automated end-to-end verification suites covering all patent specifications:
+
+```bash
+# 1. Verify Phase 2 & Phase 3 (Scheduler, Trigger Offset & Reactivation)
+python engine/test_patent_phase2_phase3.py
+
+# 2. Verify Phase 4 & Phase 5 (Consolidation Buffer, FastAPI Endpoints & History)
+python engine/test_patent_phase4_phase5.py
+
+# 3. Verify Node.js Backend (Telegram Bot, EOD Worker & MongoDB Sync)
+node server/test_patent_phase4_phase5.js
+
+# 4. Verify React 19 Frontend Production Bundle Build
+cd client && npm run build
+```
+
+---
+
+## 📑 Patent Specification Mapping
+
+| Patent Claim | Technical Implementation | File Reference |
+| :--- | :--- | :--- |
+| **Claim 1a / 2** | InsightFace SCRFD 500M + ArcFace 512D + FAISS IndexFlatIP | [`engine/core/pipeline.py`](engine/core/pipeline.py), [`vector_store.py`](engine/core/vector_store.py) |
+| **Claim 1b / 9** | SAHI Dynamic Tiling & 7-State Bounding Kalman Tracking | [`engine/core/tiling.py`](engine/core/tiling.py), [`kalman.py`](engine/core/kalman.py) |
+| **Claim 1b / 5** | Capillary rPPG Blood Volume Pulse & Multi-Sensor Veto | [`engine/core/rppg.py`](engine/core/rppg.py), [`sensor_fusion.py`](engine/core/sensor_fusion.py) |
+| **Claim 1c / 3** | APScheduler Stochastic Timetable Trigger Offset | [`engine/core/scheduler.py`](engine/core/scheduler.py) |
+| **Claim 1d / 4** | Adaptive Reactivation & Continuous Dwell-Time Qualification | [`engine/core/auditor.py`](engine/core/auditor.py) |
+| **Claim 1e / 6** | Deferred Consolidation In-Memory Session Buffer | [`engine/core/auditor.py`](engine/core/auditor.py), [`facultyController.js`](server/controllers/facultyController.js) |
+| **Claim 1e / 10f** | Web Portal Binary Attendance Checkbox Auto-Ticking | [`client/src/pages/faculty/ManualAttendance.jsx`](client/src/pages/faculty/ManualAttendance.jsx) |
+| **Claim 7 / 10h** | End-of-Day (EOD) Auto-Finalization Worker | [`server/workers/eodWorker.js`](server/workers/eodWorker.js) |
+| **Claim 1f / 8 / 10g** | Real-Time Telegram Reporting Bot with SHA-256 Signatures | [`server/services/telegramService.js`](server/services/telegramService.js) |
+
+---
+
+## 👥 Inventors & Institutional Attribution
+
+- **Institution:** VNR Vignana Jyothi Institute of Engineering and Technology (VNRVJIET), Hyderabad, Telangana, India.
+- **Department:** Department of Computer Science and Engineering (CSE-CyS, DS) and AI&DS.
+- **Inventors:**
+  1. **Gullapalli Sathar**, Assistant Professor
+  2. **N Sunanda**, Assistant Professor
+  3. **Pagadala Veeranjaneyulu**, Assistant Professor
+  4. **Y. Gayathri Karthikeya**, Researcher
+  5. **G. Vishnu Phani**, Researcher

@@ -16,7 +16,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\engine'
 Start-Sleep -Seconds 2
 
 # 2. Start Node.js Backend
-Write-Host "[2/3] Starting Node.js / Express Backend (Port 5000)..." -ForegroundColor Blue
+Write-Host "[2/3] Starting Node.js / Express Backend (Port 6446)..." -ForegroundColor Blue
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\server'; npm run server"
 
 Start-Sleep -Seconds 2
@@ -27,5 +27,5 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\client'
 
 Write-Host "`nAll VisOra services started successfully!" -ForegroundColor Green
 Write-Host " - Frontend:    http://localhost:5173" -ForegroundColor White
-Write-Host " - Backend:     http://localhost:5000" -ForegroundColor White
+Write-Host " - Backend:     http://localhost:6446" -ForegroundColor White
 Write-Host " - Neural Core: http://localhost:8000 (Docs: http://localhost:8000/docs)" -ForegroundColor White
