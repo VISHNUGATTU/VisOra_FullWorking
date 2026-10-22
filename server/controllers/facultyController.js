@@ -12,6 +12,16 @@ import neuralService from "../services/neuralService.js"; // 🧠 VisOra Neural 
 import telegramService from "../services/telegramService.js"; // 🤖 VisOra Telegram Reporting Bot (Patent Claim 1f)
 import crypto from "crypto";
 
+function timeToMinutes(timeStr) {
+  if (!timeStr) return 0;
+  const parts = timeStr.trim().split(" ");
+  if (parts.length < 2) return 0;
+  const [time, modifier] = parts;
+  let [hours, minutes] = time.split(":").map(Number);
+  if (hours === 12) hours = 0;
+  if (modifier === "PM") hours += 12;
+  return hours * 60 + (minutes || 0);
+}
 
 /* ============================
    LOGIN FACULTY
@@ -333,26 +343,87 @@ export const addScheduleSlot = async (req, res) => {
       startTime, endTime, periodIndex 
     } = req.body;
 
-    const scheduleDoc = await FacultySchedule.findOne({ faculty: facultyId }).lean();
     const newStart = timeToMinutes(startTime); 
     const newEnd = timeToMinutes(endTime); 
 
+    // 1. Personal Conflict Check (Same faculty member)
+    const scheduleDoc = await FacultySchedule.findOne({ faculty: facultyId }).lean();
     if (scheduleDoc && scheduleDoc.timetable) {
-        const daySlots = scheduleDoc.timetable.filter(s => 
-            s.day.toLowerCase().trim() === day.toLowerCase().trim()
-        );
+      const daySlots = scheduleDoc.timetable.filter(s => 
+        s.day.toLowerCase().trim() === day.toLowerCase().trim()
+      );
 
-        for (const slot of daySlots) {
-            const existingStart = timeToMinutes(slot.startTime); 
-            const existingEnd = timeToMinutes(slot.endTime); 
+      for (const slot of daySlots) {
+        const existingStart = timeToMinutes(slot.startTime); 
+        const existingEnd = timeToMinutes(slot.endTime); 
 
-            if (newStart < existingEnd && newEnd > existingStart) {
-                return res.status(409).json({
-                    success: false,
-                    message: `Conflict! Slot overlaps with "${slot.subject}" (${slot.startTime} - ${slot.endTime})`
-                });
-            }
+        if (newStart < existingEnd && newEnd > existingStart) {
+          return res.status(409).json({
+            success: false,
+            message: `Personal Conflict: You already have "${slot.subject}" scheduled on ${day} (${slot.startTime} - ${slot.endTime}).`
+          });
         }
+      }
+    }
+
+    // 2. Institutional Room Double-Booking Check
+    if (type !== 'Leisure' && room && room !== 'N/A') {
+      const otherRoomSchedules = await FacultySchedule.find({
+        faculty: { $ne: facultyId },
+        "timetable.day": day,
+        "timetable.room": room
+      }).populate("faculty", "name").lean();
+
+      for (const otherDoc of otherRoomSchedules) {
+        for (const slot of (otherDoc.timetable || [])) {
+          if (slot.day === day && slot.room === room) {
+            const existingStart = timeToMinutes(slot.startTime);
+            const existingEnd = timeToMinutes(slot.endTime);
+            if (newStart < existingEnd && newEnd > existingStart) {
+              const bookedBy = otherDoc.faculty?.name || "another faculty member";
+              return res.status(409).json({
+                success: false,
+                message: `Room Collision: Room ${room} is already booked by ${bookedBy} for "${slot.subject}" on ${day} (${slot.startTime} - ${slot.endTime}).`
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Institutional Student Cohort Collision Check
+    if (type !== 'Leisure') {
+      const otherClassSchedules = await FacultySchedule.find({
+        faculty: { $ne: facultyId },
+        "timetable.day": day,
+        "timetable.branch": branch.toUpperCase(),
+        "timetable.year": Number(year),
+        "timetable.section": section
+      }).populate("faculty", "name").lean();
+
+      for (const otherDoc of otherClassSchedules) {
+        for (const slot of (otherDoc.timetable || [])) {
+          if (
+            slot.day === day &&
+            slot.branch === branch.toUpperCase() &&
+            Number(slot.year) === Number(year) &&
+            slot.section === section
+          ) {
+            const isBatchConflict = !batch || !slot.batch || Number(batch) === Number(slot.batch);
+            if (isBatchConflict) {
+              const existingStart = timeToMinutes(slot.startTime);
+              const existingEnd = timeToMinutes(slot.endTime);
+              if (newStart < existingEnd && newEnd > existingStart) {
+                const facName = otherDoc.faculty?.name || "another faculty member";
+                return res.status(409).json({
+                  success: false,
+                  message: `Cohort Collision: ${branch.toUpperCase()} Year ${year}-${section} is already attending "${slot.subject}" with ${facName} on ${day} (${slot.startTime} - ${slot.endTime}).`
+                });
+              }
+            }
+          }
+        }
+      }
     }
 
     const newSlot = {
@@ -999,6 +1070,17 @@ export const notifyDefaultersEmail = async (req, res) => {
   try {
     const { subject, defaulters } = req.body;
 
+    if (!Array.isArray(defaulters) || defaulters.length === 0) {
+      return res.status(400).json({ success: false, message: "No defaulters provided to notify." });
+    }
+
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      return res.status(400).json({
+        success: false,
+        message: "Email dispatch is not configured on this server (EMAIL_USER / EMAIL_PASS missing in environment)."
+      });
+    }
+
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
@@ -1009,16 +1091,15 @@ export const notifyDefaultersEmail = async (req, res) => {
       }
     });
 
-    // We create an array of "Promises" to send all emails at once
+    // Create an array of email promises
     const emailPromises = defaulters.map(student => {
       const studentEmail = student.mail || student.email; 
-      if (!studentEmail) return Promise.resolve(); 
+      if (!studentEmail) return Promise.reject(new Error(`No email for ${student.name || 'Student'}`));
 
       const mailOptions = {
         from: `"VisOra System" <${process.env.EMAIL_USER}>`,
         to: studentEmail,
         subject: `⚠️ URGENT: Attendance Warning | ${subject}`,
-        // Professional HTML Template
         html: `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
             <div style="background-color: #f43f5e; padding: 20px; text-align: center;">
@@ -1037,18 +1118,18 @@ export const notifyDefaultersEmail = async (req, res) => {
               <div style="display: flex; justify-content: space-around; margin-bottom: 25px;">
                 <div style="text-align: center; flex: 1;">
                   <p style="margin: 0; font-size: 12px; color: #94a3b8;">Attended</p>
-                  <p style="margin: 5px 0; font-size: 18px; font-weight: bold; color: #1e293b;">${student.classesAttended}</p>
+                  <p style="margin: 5px 0; font-size: 18px; font-weight: bold; color: #1e293b;">${student.classesAttended || student.presentClasses || 0}</p>
                 </div>
                 <div style="text-align: center; flex: 1; border-left: 1px solid #e2e8f0;">
                   <p style="margin: 0; font-size: 12px; color: #94a3b8;">Total Sessions</p>
-                  <p style="margin: 5px 0; font-size: 18px; font-weight: bold; color: #1e293b;">${student.totalClasses}</p>
+                  <p style="margin: 5px 0; font-size: 18px; font-weight: bold; color: #1e293b;">${student.totalClasses || 0}</p>
                 </div>
               </div>
 
               <p style="color: #64748b; font-size: 14px; line-height: 1.6;">Please note that a minimum of <strong>75% attendance</strong> is mandatory for examination eligibility. You are advised to meet with your subject faculty immediately to discuss your status.</p>
             </div>
             <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-              <p style="margin: 0; color: #94a3b8; font-size: 12px;">This is a system-generated email. Please do not reply.</p>
+              <p style="margin: 0; color: #94a3b8; font-size: 12px;">This is a system-generated email from VisOra Academic Suite. Please do not reply.</p>
             </div>
           </div>
         `
@@ -1057,17 +1138,30 @@ export const notifyDefaultersEmail = async (req, res) => {
       return transporter.sendMail(mailOptions);
     });
 
-    // This handles all 60+ emails in parallel
-    await Promise.all(emailPromises);
+    // Use allSettled so one failure does not abort the entire batch
+    const results = await Promise.allSettled(emailPromises);
+    const sentCount = results.filter(r => r.status === "fulfilled").length;
+    const failedCount = results.filter(r => r.status === "rejected").length;
+
+    // 📝 Log Action
+    await logAction({
+      actionType: 'DEFAULTER_NOTIFICATION',
+      title: 'Defaulters Email Dispatched',
+      message: `Dispatched warning emails for ${subject}: ${sentCount} sent, ${failedCount} failed.`,
+      actor: { userId: req.userId, role: 'Faculty' },
+      metadata: { subject, sentCount, failedCount }
+    });
 
     res.status(200).json({ 
       success: true, 
-      message: `Notifications successfully sent to ${defaulters.length} students.` 
+      sentCount,
+      failedCount,
+      message: `Dispatched attendance warnings: ${sentCount} succeeded${failedCount > 0 ? `, ${failedCount} failed` : ''}.` 
     });
 
   } catch (error) {
     console.error("Bulk Email Error:", error);
-    res.status(500).json({ success: false, message: "Server failed to dispatch bulk emails." });
+    res.status(500).json({ success: false, message: error.message || "Server failed to dispatch bulk emails." });
   }
 };
 

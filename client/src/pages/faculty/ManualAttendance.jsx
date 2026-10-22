@@ -241,6 +241,17 @@ const ManualAttendance = () => {
     setAttendance(newAuth);
   };
 
+  const invertSelection = () => {
+    setAttendance(prev => {
+      const next = {};
+      students.forEach(s => {
+        next[s._id] = prev[s._id] === 'Present' ? 'Absent' : 'Present';
+      });
+      return next;
+    });
+    toast.success("Inverted attendance selection!");
+  };
+
   const handleSubmit = async () => {
     if(Object.keys(attendance).length === 0) return toast.error("No students to mark!");
 
@@ -410,20 +421,52 @@ const ManualAttendance = () => {
             </div>
           )}
 
-          <div className="px-6 py-3 bg-white border-b border-gray-100 flex justify-between items-center sticky top-0 z-20 shadow-sm">
-            <div className="flex gap-6 text-sm font-medium">
-              <span className="text-gray-600">Total: <b className="text-gray-900">{students.length}</b></span>
-              <span className="text-green-600">Present: <b>{Object.values(attendance).filter(v => v === 'Present').length}</b></span>
-              <span className="text-red-600">Absent: <b>{Object.values(attendance).filter(v => v === 'Absent').length}</b></span>
-              {aiVerifiedIds.size > 0 && (
-                <span className="text-indigo-600 hidden sm:inline">AI Verified: <b>{aiVerifiedIds.size}</b></span>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => markAll('Present')} className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded transition">All Present</button>
-              <button onClick={() => markAll('Absent')} className="text-xs font-bold text-red-600 hover:bg-red-50 px-3 py-1.5 rounded transition">All Absent</button>
-            </div>
-          </div>
+          {(() => {
+            const presentCount = Object.values(attendance).filter(v => v === 'Present').length;
+            const absentCount = Object.values(attendance).filter(v => v === 'Absent').length;
+            const presentRate = students.length > 0 ? Math.round((presentCount / students.length) * 100) : 0;
+
+            return (
+              <div className="px-6 py-3 bg-white border-b border-gray-100 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-20 shadow-sm">
+                <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
+                  <span className="text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200">
+                    Total: <b className="text-gray-900">{students.length}</b>
+                  </span>
+                  <span className="text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                    Present: <b>{presentCount}</b> ({presentRate}%)
+                  </span>
+                  <span className="text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
+                    Absent: <b>{absentCount}</b>
+                  </span>
+                  {aiVerifiedIds.size > 0 && (
+                    <span className="text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 hidden sm:inline-flex items-center gap-1">
+                      <ShieldCheck size={12} className="text-indigo-600" /> AI Verified: <b>{aiVerifiedIds.size}</b>
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => markAll('Present')} 
+                    className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition"
+                  >
+                    All Present
+                  </button>
+                  <button 
+                    onClick={() => markAll('Absent')} 
+                    className="text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-lg transition"
+                  >
+                    All Absent
+                  </button>
+                  <button 
+                    onClick={invertSelection} 
+                    className="text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-lg transition"
+                  >
+                    Invert
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="flex-1 overflow-y-auto">
             {loading ? (
