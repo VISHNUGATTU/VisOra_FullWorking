@@ -482,6 +482,37 @@ def finalize_session(session_id: str, min_frames: int = 3):
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
     return summary
 
+@router.get("/audit/consolidated")
+def get_consolidated_neural_attendance(
+    branch: Optional[str] = None,
+    year: Optional[int] = None,
+    section: Optional[str] = None,
+    subject: Optional[str] = None,
+    session_id: Optional[str] = None
+):
+    """
+    Deferred Consolidation Retrieval Endpoint (Patent Claim 1e, 6, 10f).
+    Returns verified attendance accumulated in temporary session buffer for institutional portal checkbox auto-ticking.
+    """
+    summary = session_manager.find_consolidation(
+        branch=branch,
+        year=year,
+        section=section,
+        subject=subject,
+        session_id=session_id
+    )
+    if not summary:
+        return {
+            "success": True,
+            "found": False,
+            "message": "No active or consolidated neural session found matching parameters."
+        }
+    return {
+        "success": True,
+        "found": True,
+        "summary": summary
+    }
+
 # ================= PHASE 2: APSCHEDULER RANDOMIZED TIMETABLE AUTOMATION =================
 
 @router.post("/schedule/register", response_model=ScheduleRegisterResponse)

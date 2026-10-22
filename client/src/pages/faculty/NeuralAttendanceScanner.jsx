@@ -445,6 +445,9 @@ const NeuralAttendanceScanner = () => {
 
       if (res.data.success) {
         toast.success(res.data.message || "Attendance recorded successfully!");
+        if (res.data.telegramDispatched) {
+          toast(`✈️ Telegram report dispatched (${res.data.telegramMode} mode, Patent Claim 1f).`, { icon: '🤖', duration: 4000 });
+        }
         stopCamera();
       } else {
         toast.error(res.data.message || "Failed to submit attendance.");

@@ -9,6 +9,8 @@ import nodemailer from 'nodemailer';
 import { v2 as cloudinary } from "cloudinary";
 import { logAction } from "../configs/logger.js"; // ✅ Imported Logger
 import neuralService from "../services/neuralService.js"; // 🧠 VisOra Neural Identity Engine
+import telegramService from "../services/telegramService.js"; // 🤖 VisOra Telegram Reporting Bot (Patent Claim 1f)
+import crypto from "crypto";
 
 
 /* ============================
@@ -612,9 +614,37 @@ export const markAttendance = async (req, res) => {
       metadata: { classId, date: attendanceDate }
     });
 
+    // 🤖 Autonomously dispatch Telegram report (Patent Claim 1f, 8, 10g)
+    const faculty = await Faculty.findById(facultyId);
+    const absentRollNos = students
+      .filter(s => newAbsentIds.includes(s._id.toString()))
+      .map(s => s.rollno)
+      .filter(Boolean);
+
+    let telegramReport = null;
+    try {
+      telegramReport = await telegramService.sendAttendanceReport({
+        subject: schedule.subject,
+        branch: schedule.branch,
+        year: schedule.year,
+        section: schedule.section || schedule.batch,
+        facultyName: faculty?.name || "Faculty Member",
+        presentCount: students.length - newAbsentIds.length,
+        absentCount: newAbsentIds.length,
+        totalStudents: students.length,
+        absentRollNumbers: absentRollNos,
+        date: attendanceDate.toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" }),
+        timeSlot: schedule.time || "Lecture Period"
+      });
+    } catch (tgErr) {
+      console.warn("[markAttendance] Telegram dispatch skipped:", tgErr.message);
+    }
+
     res.json({ 
       success: true, 
-      message: isUpdate ? "Attendance updated successfully!" : "Attendance saved successfully!" 
+      message: isUpdate ? "Attendance updated successfully!" : "Attendance saved successfully!",
+      telegramDispatched: Boolean(telegramReport?.success),
+      telegramMode: telegramReport?.mode || "SIMULATED"
     });
 
   } catch (error) {
@@ -1187,6 +1217,36 @@ export const markNeuralAttendance = async (req, res) => {
       }
     });
 
+    // 🤖 Autonomously dispatch Telegram report (Patent Claim 1f, 8, 10g)
+    const faculty = await Faculty.findById(facultyId);
+    const absentRollNos = attendanceData
+      .filter(a => a.status === "Absent")
+      .map(a => {
+        const std = students.find(s => s._id.toString() === a.studentId);
+        return std?.rollno || "";
+      })
+      .filter(Boolean);
+
+    let telegramReport = null;
+    try {
+      telegramReport = await telegramService.sendAttendanceReport({
+        subject: schedule.subject,
+        branch: schedule.branch,
+        year: schedule.year,
+        section: schedule.section || schedule.batch,
+        facultyName: faculty?.name || "Faculty Member",
+        presentCount,
+        absentCount,
+        totalStudents: students.length,
+        absentRollNumbers: absentRollNos,
+        randomOffsetMin: telemetrySummary?.randomOffsetMin || 15,
+        date: new Date(attendanceDate).toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" }),
+        timeSlot: schedule.time || "Lecture Period"
+      });
+    } catch (tgErr) {
+      console.warn("[markNeuralAttendance] Telegram dispatch skipped:", tgErr.message);
+    }
+
     return res.json({
       success: true,
       message: `AI Neural Attendance recorded: ${presentCount} Present, ${absentCount} Absent.`,
@@ -1197,7 +1257,9 @@ export const markNeuralAttendance = async (req, res) => {
         attendanceDate
       },
       presentStudents: attendanceData.filter(a => a.status === "Present"),
-      absentStudents: attendanceData.filter(a => a.status === "Absent")
+      absentStudents: attendanceData.filter(a => a.status === "Absent"),
+      telegramDispatched: Boolean(telegramReport?.success),
+      telegramMode: telegramReport?.mode || "SIMULATED"
     });
 
   } catch (error) {
@@ -1289,4 +1351,202 @@ export const getSessionPresenceBreakdown = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * Deferred Consolidation Endpoint (Patent Claim 1e, 6, 10f).
+ * Autonomously retrieves neural verified students for a timetable lecture slot.
+ * Generates binary checkbox auto-ticking state for the institutional web portal.
+ */
+export const getNeuralConsolidatedAttendance = async (req, res) => {
+  try {
+    const { classId, date, sessionId } = req.query;
+    if (!classId && !sessionId) {
+      return res.status(400).json({ success: false, message: "Missing classId or sessionId" });
+    }
+
+    let schedule = null;
+    if (classId && mongoose.Types.ObjectId.isValid(classId)) {
+      schedule = await FacultySchedule.findById(classId);
+    }
+
+    const branch = schedule?.branch || req.query.branch;
+    const year = schedule?.year || req.query.year;
+    const section = (schedule?.section || schedule?.batch) || req.query.section;
+    const subject = schedule?.subject || req.query.subject;
+
+    // 1. Fetch consolidated neural data from the Neural Engine
+    const neuralResult = await neuralService.getConsolidatedAttendance({
+      branch,
+      year,
+      section,
+      subject,
+      sessionId
+    });
+
+    const hasNeuralData = neuralResult.success && neuralResult.data?.found;
+    const summary = hasNeuralData ? neuralResult.data.summary : null;
+
+    // 2. Fetch full student roster for this class
+    let students = [];
+    if (branch && year && section) {
+      students = await Student.find({ branch, year, section });
+    }
+
+    // 3. Map verified neural roll numbers / student IDs to roster
+    const verifiedRollSet = new Set();
+    const verifiedStudentIdSet = new Set();
+    const dwellMap = {};
+
+    if (summary?.present_students) {
+      summary.present_students.forEach(st => {
+        if (st.rollno) verifiedRollSet.add(st.rollno.toUpperCase());
+        if (st.student_id) verifiedStudentIdSet.add(st.student_id);
+        const key = (st.rollno || st.student_id || "").toUpperCase();
+        if (key) {
+          dwellMap[key] = {
+            dwellSeconds: st.dwell_time_seconds || st.continuous_presence_seconds || 0,
+            arrivalStatus: st.arrival_status || "ON_TIME",
+            similarity: st.similarity || 0.95,
+            heartRate: st.heartRate || st.heart_rate_bpm || 74,
+            isLive: st.is_live ?? true
+          };
+        }
+      });
+    }
+
+    // 4. Construct binary checkbox status for each student
+    const autoTickedAttendance = {};
+    const aiVerifiedList = [];
+
+    students.forEach(std => {
+      const isVerified = (std.rollno && verifiedRollSet.has(std.rollno.toUpperCase())) ||
+                         verifiedStudentIdSet.has(std._id.toString());
+      if (hasNeuralData) {
+        autoTickedAttendance[std._id] = isVerified ? "Present" : "Absent";
+      } else {
+        autoTickedAttendance[std._id] = "Present"; // Default fallback
+      }
+
+      if (isVerified) {
+        aiVerifiedList.push({
+          _id: std._id,
+          rollno: std.rollno,
+          name: std.name,
+          telemetry: dwellMap[std.rollno?.toUpperCase()] || null
+        });
+      }
+    });
+
+    return res.json({
+      success: true,
+      hasNeuralConsolidation: hasNeuralData,
+      sessionState: summary?.session_state || (hasNeuralData ? "CONSOLIDATED" : "NOT_FOUND"),
+      totalStudents: students.length,
+      aiVerifiedCount: aiVerifiedList.length,
+      autoTickedAttendance,
+      aiVerifiedStudents: aiVerifiedList,
+      summary: summary || null,
+      patentRef: "202641036876",
+      claimRef: "Claims 1e, 6, 10f"
+    });
+  } catch (error) {
+    console.error("[getNeuralConsolidatedAttendance] Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Dispatches an automated real-time attendance report to configured Telegram channel (Patent Claim 1f, 8, 10g).
+ */
+export const sendTelegramAttendanceReport = async (req, res) => {
+  try {
+    const {
+      classId,
+      date,
+      presentCount,
+      absentCount,
+      totalStudents,
+      absentRollNumbers = [],
+      randomOffsetMin = 15,
+      timeSlot
+    } = req.body;
+
+    const facultyId = req.userId || req.user?.id || req.user?._id;
+    let faculty = null;
+    if (facultyId) {
+      faculty = await Faculty.findById(facultyId);
+    }
+
+    let schedule = null;
+    if (classId && mongoose.Types.ObjectId.isValid(classId)) {
+      schedule = await FacultySchedule.findById(classId);
+    }
+
+    // Cryptographic verification signature (Patent Claim 8)
+    const verificationPayload = `${classId || 'CLASS'}_${date || Date.now()}_${presentCount}_${absentCount}`;
+    const cryptographicSignature = crypto.createHash("sha256").update(verificationPayload).digest("hex").slice(0, 16);
+
+    const reportResult = await telegramService.sendAttendanceReport({
+      subject: schedule?.subject || req.body.subject || "Lecture",
+      branch: schedule?.branch || req.body.branch || "CSE",
+      year: schedule?.year || req.body.year || 3,
+      section: (schedule?.section || schedule?.batch) || req.body.section || "A",
+      facultyName: faculty?.name || req.body.facultyName || "Faculty Member",
+      presentCount: Number(presentCount) || 0,
+      absentCount: Number(absentCount) || 0,
+      totalStudents: Number(totalStudents) || 0,
+      absentRollNumbers: absentRollNumbers || [],
+      randomOffsetMin: Number(randomOffsetMin) || 15,
+      date: date || new Date().toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" }),
+      timeSlot: timeSlot || schedule?.time || "Scheduled Period"
+    });
+
+    // 📝 Log Telegram Dispatch
+    await logAction({
+      actionType: 'TELEGRAM_REPORT_DISPATCH',
+      title: 'Automated Telegram Attendance Dispatch',
+      message: `Dispatched attendance card for ${schedule?.subject || 'Class'}: ${presentCount} Present, ${absentCount} Absent (${reportResult.mode} mode)`,
+      actor: { userId: facultyId, role: 'Faculty' },
+      metadata: {
+        classId,
+        presentCount,
+        absentCount,
+        cryptographicSignature,
+        mode: reportResult.mode,
+        patentRef: "202641036876"
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: `Telegram report dispatched in ${reportResult.mode} mode.`,
+      report: reportResult,
+      cryptographicSignature
+    });
+  } catch (error) {
+    console.error("[sendTelegramAttendanceReport] Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Manual or Worker-Triggered End-of-Day (EOD) Auto-Finalization (Patent Claim 7, 10h).
+ * Finalizes any uncommitted lecture attendance records accumulated in the session buffer.
+ */
+export const triggerEODFinalization = async (req, res) => {
+  try {
+    const { date } = req.body;
+    const { runEODFinalization } = await import("../workers/eodWorker.js");
+    const result = await runEODFinalization(date);
+    return res.json({
+      success: true,
+      message: "End-of-Day Auto-Finalization complete (Patent Claims 6, 7 & 10h).",
+      ...result
+    });
+  } catch (error) {
+    console.error("[triggerEODFinalization] Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 

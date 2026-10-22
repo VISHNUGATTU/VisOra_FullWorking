@@ -24,7 +24,10 @@ import {
   scheduleNeuralTrigger,
   getNeuralScheduledSlots,
   reactivateNeuralSession,
-  getSessionPresenceBreakdown
+  getSessionPresenceBreakdown,
+  getNeuralConsolidatedAttendance,
+  sendTelegramAttendanceReport,
+  triggerEODFinalization
 } from "../controllers/facultyController.js";
 
 import { facultyAuth } from "../middlewares/authFaculty.js";
@@ -59,5 +62,8 @@ facultyRouter.post('/schedule-neural-trigger', facultyAuth, scheduleNeuralTrigge
 facultyRouter.get('/neural-scheduled-slots', facultyAuth, getNeuralScheduledSlots);
 facultyRouter.post('/reactivate-session', facultyAuth, reactivateNeuralSession);
 facultyRouter.get('/session-presence/:sessionId', facultyAuth, getSessionPresenceBreakdown);
+facultyRouter.get('/neural-consolidated-attendance', facultyAuth, getNeuralConsolidatedAttendance);
+facultyRouter.post('/send-telegram-report', facultyAuth, sendTelegramAttendanceReport);
+facultyRouter.post('/eod-finalize', facultyAuth, triggerEODFinalization);
 
 export default facultyRouter;

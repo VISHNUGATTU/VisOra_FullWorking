@@ -264,7 +264,7 @@ class AuditSession:
                     continue
 
             # If qualified on presence and biometric authorization
-            if s["frame_count"] >= min_frames_threshold and s.get("authorized", False):
+            if s.get("frame_count", 1) >= min_frames_threshold and s.get("authorized", False):
                 s["attendance_status"] = "VERIFIED_PRESENT"
                 present_students.append(s)
             else:
@@ -323,6 +323,7 @@ class SessionManager:
 
     def __init__(self):
         self.sessions: Dict[str, AuditSession] = {}
+        self.consolidated_history: Dict[str, Dict[str, Any]] = {}
         # Connect APScheduler callback
         schedule_manager.register_trigger_callback(self._on_schedule_trigger)
 
@@ -367,9 +368,60 @@ class SessionManager:
         session = self.sessions.pop(session_id, None)
         if session:
             session.state = "CONSOLIDATED"
-            return session.get_summary()
+            summary = session.get_summary()
+            self.consolidated_history[session_id] = summary
+            return summary
+        return self.consolidated_history.get(session_id)
+
+    def find_consolidation(
+        self,
+        branch: Optional[str] = None,
+        year: Optional[int] = None,
+        section: Optional[str] = None,
+        subject: Optional[str] = None,
+        session_id: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Retrieves consolidated neural attendance for institutional web portal sync (Patent Claim 1e, 6).
+        Checks active sessions first, then consolidated history.
+        """
+        if session_id:
+            if session_id in self.sessions:
+                return self.sessions[session_id].get_summary()
+            if session_id in self.consolidated_history:
+                return self.consolidated_history[session_id]
+
+        # Search active sessions in reverse (most recent first)
+        for s in reversed(list(self.sessions.values())):
+            matches = True
+            if branch and s.branch and branch.strip().lower() not in s.branch.strip().lower():
+                matches = False
+            if section and s.section and section.strip().lower() != s.section.strip().lower():
+                matches = False
+            if year and s.year and int(year) != int(s.year):
+                matches = False
+            if subject and s.subject and subject.strip().lower() not in s.subject.strip().lower():
+                matches = False
+            if matches:
+                return s.get_summary()
+
+        # Search consolidated history in reverse
+        for sid, hist in reversed(list(self.consolidated_history.items())):
+            matches = True
+            if branch and hist.get("branch") and branch.strip().lower() not in hist["branch"].strip().lower():
+                matches = False
+            if section and hist.get("section") and section.strip().lower() != hist["section"].strip().lower():
+                matches = False
+            if year and hist.get("year") and int(year) != int(hist["year"]):
+                matches = False
+            if subject and hist.get("subject") and subject.strip().lower() not in hist["subject"].strip().lower():
+                matches = False
+            if matches:
+                return hist
+
         return None
 
 
 # Singleton instance
 session_manager = SessionManager()
+

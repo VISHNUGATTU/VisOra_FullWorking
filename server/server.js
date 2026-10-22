@@ -13,6 +13,7 @@ import adminRouter from "./routes/adminRoute.js";
 import logRouter from "./routes/logRoute.js";
 import reportRouter from "./routes/reportRoute.js";
 import notificationRouter from "./routes/notificationRoute.js";
+import { initEODWorker } from "./workers/eodWorker.js";
 
 // Load env variables
 dotenv.config();
@@ -28,6 +29,7 @@ const PORT = process.env.PORT || 5000;
 // Connect Database & Cloudinary
 await connectDB();
 connectCloudinary();
+initEODWorker();
 
 // ✅ Allowed Origins (Local + Production)
 

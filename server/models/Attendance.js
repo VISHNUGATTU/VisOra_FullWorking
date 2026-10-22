@@ -28,6 +28,17 @@ const attendanceSchema = new mongoose.Schema(
         ref: "Student",
       },
     ],
+
+    // 📜 VisOra Patent Metadata (Patent App No: 202641036876)
+    isConsolidated: { type: Boolean, default: true },
+    consolidationMode: { 
+      type: String, 
+      enum: ['NEURAL_AUTO', 'MANUAL_OVERRIDE', 'EOD_AUTO_COMMIT'], 
+      default: 'MANUAL_OVERRIDE' 
+    },
+    telegramDispatched: { type: Boolean, default: false },
+    cryptographicSignature: { type: String, default: "" },
+    patentRef: { type: String, default: "202641036876" }
   },
   { timestamps: true }
 );

@@ -223,8 +223,29 @@ class NeuralService {
       return { success: false, error: err.message };
     }
   }
+
+  /**
+   * Retrieves deferred consolidated neural attendance for institutional portal checkbox auto-ticking (Patent Claim 1e, 6).
+   */
+  async getConsolidatedAttendance({ branch, year, section, subject, sessionId }) {
+    try {
+      const params = new URLSearchParams();
+      if (branch) params.append("branch", branch);
+      if (year) params.append("year", String(year));
+      if (section) params.append("section", section);
+      if (subject) params.append("subject", subject);
+      if (sessionId) params.append("session_id", sessionId);
+
+      const response = await fetch(`${this.baseUrl}/api/v1/audit/consolidated?${params.toString()}`);
+      const data = await response.json();
+      return { success: response.ok, data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
 }
 
 export const neuralService = new NeuralService();
 export default neuralService;
+
 

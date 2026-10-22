@@ -7,6 +7,8 @@ import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import { logAction } from "../configs/logger.js";
 import mongoose from "mongoose";
+import neuralService from "../services/neuralService.js";
+import telegramService from "../services/telegramService.js";
 
 /* ============================
    LOGIN ADMIN
@@ -390,19 +392,34 @@ export const getSystemHealth = async (req, res) => {
     await mongoose.connection.db.admin().ping();
     const latency = Date.now() - start;
 
+    // Real-time checks for Neural Engine and Telegram Bot (Patent Claim 1)
+    let aiStatus = 'maintenance';
+    try {
+      const health = await neuralService.checkHealth();
+      aiStatus = health.online ? 'connected' : 'offline';
+    } catch {
+      aiStatus = 'offline';
+    }
+
+    const tgStatus = telegramService.getStatus();
+    const telegramMode = tgStatus.configured ? 'active' : 'simulated';
+
     // We send a flat object for easy access
     res.status(200).json({
       success: true,
       database: 'connected', 
       latency: latency, 
-      aiEngine: 'maintenance',
-      telegramBot: 'maintenance'
+      aiEngine: aiStatus,
+      telegramBot: telegramMode,
+      patentRef: '202641036876'
     });
   } catch (error) {
     res.status(500).json({ 
       success: false, 
       database: 'disconnected', 
-      latency: 0 
+      latency: 0,
+      aiEngine: 'offline',
+      telegramBot: 'offline'
     });
   }
 };
